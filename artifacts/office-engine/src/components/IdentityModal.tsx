@@ -110,11 +110,11 @@ export function IdentityModal({
         <div
           style={{
             position: "absolute",
-            top: "40%",
+            top: "50%",
             left: "50%",
             transform: "translate(-50%, -60%)",
-            width: 380,
-            height: 380,
+            width: 420,
+            height: 420,
             borderRadius: "50%",
             background:
               "radial-gradient(circle, rgba(130,174,254,0.30) 0%, rgba(130,174,254,0.08) 55%, transparent 75%)",
@@ -228,16 +228,17 @@ export function IdentityModal({
                 placeholder="Your name"
                 autoComplete="off"
                 spellCheck={false}
+                className="placeholder:text-blue-200"
                 style={{
                   width: "100%",
                   background: "transparent",
                   border: "none",
                   borderBottom: "2px solid #045CFC",
-                  fontSize: 26,
+                  fontSize: 28,
                   fontFamily: '"DM Serif Display", serif',
                   fontWeight: 400,
                   color: "#045CFC",
-                  padding: "6px 0 10px",
+                  padding: "8px 0 12px",
                   outline: "none",
                   caretColor: "#045CFC",
                   boxSizing: "border-box",
@@ -254,8 +255,8 @@ export function IdentityModal({
                 background: name.trim() ? "#82AEFE" : "#E5ECFF",
                 color: name.trim() ? "#000000" : "#9EB8FE",
                 border: "none",
-                padding: "15px 24px",
-                fontSize: 14,
+                padding: "16px 24px",
+                fontSize: 15,
                 fontWeight: 600,
                 letterSpacing: "0.01em",
                 cursor: name.trim() ? "pointer" : "not-allowed",
@@ -267,7 +268,7 @@ export function IdentityModal({
               }}
             >
               <span>Continue</span>
-              <ArrowRight size={16} />
+              <ArrowRight size={18} />
             </button>
           </div>
 

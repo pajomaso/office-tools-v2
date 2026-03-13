@@ -119,97 +119,87 @@ export function Layout({ children }: { children: ReactNode }) {
         </DialogContent>
       </Dialog>
 
-      {/* Decorative background element */}
-      <div className="absolute top-0 w-full h-64 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none -z-10" />
-
       {/* Header */}
-      <header className="sticky top-0 z-40 glass-panel border-b border-border/50">
+      <header className="sticky top-0 z-40 glass-panel border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-14">
             {/* Logo */}
-            <Link href={isAdmin ? "/admin/rooms" : "/dashboard"} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center shadow-sm">
-                <Building2 className="w-5 h-5 text-white" />
+            <Link href={isAdmin ? "/admin/rooms" : "/dashboard"} className="flex items-center gap-2.5 hover:opacity-70 transition-opacity">
+              <div className="w-7 h-7 bg-foreground/8 border border-border flex items-center justify-center">
+                <Building2 className="w-4 h-4 text-foreground" />
               </div>
-              <span className="font-display font-bold text-xl tracking-tight text-foreground hidden sm:block">
+              <span className="font-display font-bold text-base tracking-tight text-foreground hidden sm:block uppercase">
                 The Office Engine
               </span>
             </Link>
 
             {/* Desktop Nav */}
-            <nav className="hidden md:flex space-x-1">
+            <nav className="hidden md:flex items-center gap-0.5">
               {currentNav.map((item) => {
                 const isActive = location.startsWith(item.href);
                 return (
                   <Link key={item.name} href={item.href} className={cn(
-                    "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 relative",
-                    isActive 
-                      ? "text-primary bg-primary/10" 
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    "px-3 py-1.5 text-xs font-medium tracking-wide uppercase transition-all flex items-center gap-1.5 relative border-b-2",
+                    isActive
+                      ? "text-foreground border-foreground"
+                      : "text-muted-foreground border-transparent hover:text-foreground hover:border-border"
                   )}>
-                    <item.icon className="w-4 h-4" />
+                    <item.icon className="w-3.5 h-3.5" />
                     {item.name}
-                    {isActive && (
-                      <motion.div 
-                        layoutId="nav-indicator"
-                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-                        initial={false}
-                      />
-                    )}
                   </Link>
                 );
               })}
             </nav>
 
-            {/* User & Settings */}
-            <div className="flex items-center gap-4">
+            {/* User & Mode */}
+            <div className="flex items-center gap-3">
               {isSetup && (
                 <DropdownMenu>
-                  <DropdownMenuTrigger className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-muted transition-colors focus:outline-none">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                  <DropdownMenuTrigger className="flex items-center gap-2 px-2 py-1 border border-transparent hover:border-border transition-colors focus:outline-none">
+                    <div className="w-6 h-6 bg-foreground text-background flex items-center justify-center font-bold text-xs">
                       {userName.charAt(0).toUpperCase()}
                     </div>
-                    <div className="hidden sm:flex flex-col items-start text-sm text-left">
-                      <span className="font-medium text-foreground leading-none">{userName}</span>
-                      <span className="text-xs text-muted-foreground mt-0.5">
-                        {isAdmin ? "Admin Mode" : "Staff Mode"}
+                    <div className="hidden sm:flex flex-col items-start text-xs text-left leading-tight">
+                      <span className="font-medium text-foreground">{userName}</span>
+                      <span className="text-muted-foreground">
+                        {isAdmin ? "Admin" : "Staff"}
                       </span>
                     </div>
-                    <ChevronDown className="w-4 h-4 text-muted-foreground ml-1" />
+                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-xl glass-panel">
+                  <DropdownMenuContent align="end" className="w-52 glass-panel border border-border">
                     <div className="p-2 px-3 flex flex-col mb-1">
-                      <span className="font-medium">{userName}</span>
+                      <span className="font-medium text-sm">{userName}</span>
                       {isAdmin && (
-                        <span className="text-xs text-primary font-medium mt-0.5 flex items-center gap-1">
+                        <span className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                           <Shield className="w-3 h-3" /> Admin Mode
                         </span>
                       )}
                     </div>
                     <DropdownMenuSeparator />
                     {isAdmin ? (
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={exitAdmin}
-                        className="cursor-pointer py-2 px-3 rounded-lg flex items-center gap-2"
+                        className="cursor-pointer py-2 px-3 flex items-center gap-2 text-sm"
                       >
-                        <Shield className="w-4 h-4 text-muted-foreground" /> Switch to Staff Mode
+                        <Shield className="w-4 h-4 text-muted-foreground" /> Staff Mode
                       </DropdownMenuItem>
                     ) : (
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={openPasswordDialog}
-                        className="cursor-pointer py-2 px-3 rounded-lg flex items-center gap-2"
+                        className="cursor-pointer py-2 px-3 flex items-center gap-2 text-sm"
                       >
-                        <Lock className="w-4 h-4 text-primary" /> Switch to Admin Mode
+                        <Lock className="w-4 h-4" /> Admin Mode
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => {
                         localStorage.removeItem('officeEngineUser');
                         localStorage.removeItem('officeEngineAdmin');
                         window.location.reload();
                       }}
-                      className="cursor-pointer py-2 px-3 rounded-lg text-destructive focus:text-destructive flex items-center gap-2"
+                      className="cursor-pointer py-2 px-3 text-destructive focus:text-destructive flex items-center gap-2 text-sm"
                     >
                       <LogOut className="w-4 h-4" /> Sign Out
                     </DropdownMenuItem>

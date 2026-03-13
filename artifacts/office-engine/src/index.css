@@ -207,21 +207,22 @@
 
 /* ─────────────────────────────────────────────────────────────────────────────
    DARK MODE — TYPOGRAPHY UPGRADES
-   Tighter tracking on headings, slightly larger base for authority.
 ───────────────────────────────────────────────────────────────────────────── */
-.dark h1, :root.dark h1,
-@media (prefers-color-scheme: dark) { h1 } {
+.dark h1,
+:root.dark h1 {
   letter-spacing: -0.04em;
 }
 
-.dark h2, .dark h3 {
+.dark h2,
+.dark h3,
+:root.dark h2,
+:root.dark h3 {
   letter-spacing: -0.02em;
 }
 
 @media (prefers-color-scheme: dark) {
-  h2, h3 {
-    letter-spacing: -0.02em;
-  }
+  h1 { letter-spacing: -0.04em; }
+  h2, h3 { letter-spacing: -0.02em; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

@@ -28,7 +28,7 @@ export function IdentityModal({
             <Building2 className="w-6 h-6" />
           </div>
           <DialogTitle className="text-2xl font-display text-foreground">Welcome to The Office Engine</DialogTitle>
-          <DialogDescription className="text-muted-foreground pt-2">
+          <DialogDescription className="text-foreground/70 pt-2">
             Please enter your name to continue. This will be used for your bookings and requests.
           </DialogDescription>
         </DialogHeader>

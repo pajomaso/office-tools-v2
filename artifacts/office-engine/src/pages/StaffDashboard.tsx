@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetRooms, useGetBookings, useCreateBooking, useDeleteBooking,
@@ -10,9 +10,10 @@ import {
 import { useAppState } from "@/hooks/use-app-state";
 import { format, addDays, startOfWeek, isSameDay, addWeeks, subWeeks } from "date-fns";
 import {
-  Calendar, Coffee, Wrench, Lightbulb,
-  ChevronLeft, ChevronRight, Clock, Trash2,
-  Send, Plus, CheckCircle2, AlertCircle
+  Calendar, Coffee, Wrench, Lightbulb, BookOpen,
+  ChevronLeft, ChevronRight, ChevronDown, Clock, Trash2,
+  Send, Plus, CheckCircle2, AlertCircle, Phone, Video,
+  Thermometer, Sparkles, Star, ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -74,6 +75,30 @@ function SectionHeader({ id, icon: Icon, title, subtitle, color }: any) {
         <p className="text-muted-foreground text-sm">{subtitle}</p>
       </div>
     </div>
+  );
+}
+
+function InfoCard({ icon: Icon, iconColor, title, open, onToggle, children }: {
+  icon: any; iconColor: string; title: string; open: boolean; onToggle: () => void; children: ReactNode;
+}) {
+  return (
+    <Card className="rounded-2xl shadow-sm overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors text-left"
+      >
+        <div className="flex items-center gap-3">
+          <Icon className={cn("w-5 h-5", iconColor)} />
+          <span className="font-semibold text-sm">{title}</span>
+        </div>
+        <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200", open && "rotate-180")} />
+      </button>
+      {open && (
+        <div className="px-5 pb-5 pt-0 border-t border-border/50">
+          <div className="pt-4">{children}</div>
+        </div>
+      )}
+    </Card>
   );
 }
 
@@ -211,12 +236,29 @@ export default function StaffDashboard() {
     },
   });
 
+  // ── Office info (editable by admin) ───────────────────────────────────────
+  const [officeInfo, setOfficeInfo] = useState<{ instructions: string; instructionsVideo: string; contacts: string } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/settings/office-info")
+      .then(r => r.json())
+      .then(setOfficeInfo)
+      .catch(() => {});
+  }, []);
+
+  // ── Accordion state for info sub-sections ─────────────────────────────────
+  const [openCards, setOpenCards] = useState<Record<string, boolean>>({
+    practices: true, cleaning: false, ac: false, contacts: false, instructions: false,
+  });
+  const toggleCard = (key: string) => setOpenCards(prev => ({ ...prev, [key]: !prev[key] }));
+
   // ── Scroll spy nav ─────────────────────────────────────────────────────────
   const sections = [
     { id: "rooms", label: "Rooms", icon: Calendar, color: "text-indigo-600" },
     { id: "pantry", label: "Pantry", icon: Coffee, color: "text-amber-600" },
     { id: "maintenance", label: "Fix-It", icon: Wrench, color: "text-red-600" },
     { id: "suggestions", label: "Suggestions", icon: Lightbulb, color: "text-emerald-600" },
+    { id: "info", label: "Info & FAQ", icon: BookOpen, color: "text-purple-600" },
   ];
 
   const scrollTo = (id: string) => {
@@ -542,6 +584,151 @@ export default function StaffDashboard() {
             ))}
           </div>
         )}
+      </section>
+
+      {/* ── INFO & FAQ ───────────────────────────────────────────────────── */}
+      <section className="space-y-6">
+        <SectionHeader
+          id="info"
+          icon={BookOpen}
+          title="Info & FAQ"
+          subtitle="Best practices, schedules, and useful information."
+          color="bg-purple-100 text-purple-600"
+        />
+
+        <div className="space-y-3">
+          {/* Best Practices */}
+          <InfoCard
+            icon={Star}
+            iconColor="text-amber-500"
+            title="Best Practices"
+            open={openCards.practices}
+            onToggle={() => toggleCard("practices")}
+          >
+            <ul className="space-y-2.5 text-sm text-foreground">
+              {[
+                "Don't leave personal belongings in the office.",
+                "Keep the space clean — common areas, kitchen, and bathrooms. Put food garbage in trash cans and clean up after use.",
+                "Keep your volume down. For calls or meetings, use the private office or meeting room if available.",
+                "Be mindful of tableware — don't leave dishes or mugs around the office or uncleaned in the sink.",
+                "Reserve meeting rooms in advance if needed, and leave them as clean as you found them.",
+                "Phone booths can be used briefly, but be aware there is no air circulation. A solution is being looked into.",
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </InfoCard>
+
+          {/* Cleaning Schedule */}
+          <InfoCard
+            icon={Sparkles}
+            iconColor="text-blue-500"
+            title="Cleaning Schedule"
+            open={openCards.cleaning}
+            onToggle={() => toggleCard("cleaning")}
+          >
+            <p className="text-sm text-muted-foreground mb-3">Normal schedule (flexible):</p>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { day: "Monday", time: "18:00 – 20:00" },
+                { day: "Thursday", time: "18:00 – 20:00" },
+              ].map(s => (
+                <div key={s.day} className="flex items-center gap-3 bg-blue-50 rounded-xl px-4 py-3">
+                  <Clock className="w-4 h-4 text-blue-500 shrink-0" />
+                  <div>
+                    <p className="font-semibold text-sm">{s.day}</p>
+                    <p className="text-xs text-muted-foreground">{s.time}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </InfoCard>
+
+          {/* AC */}
+          <InfoCard
+            icon={Thermometer}
+            iconColor="text-cyan-500"
+            title="Air Conditioning"
+            open={openCards.ac}
+            onToggle={() => toggleCard("ac")}
+          >
+            <ul className="space-y-3 text-sm">
+              <li className="flex items-start gap-2">
+                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
+                <span><strong>End-of-Day Check:</strong> Turn the AC off when leaving — it's significantly more energy-efficient.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
+                <span><strong>Standard Setting:</strong> Target temperature is <strong>22°C</strong>.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
+                <span><strong>Seasonal Transitions:</strong> The building's central system switches from heating to cooling every spring. On warm days before this switch, lower the window blackouts to help maintain a cool temperature.</span>
+              </li>
+            </ul>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <a
+                href="#"
+                onClick={e => e.preventDefault()}
+                className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors text-muted-foreground"
+              >
+                🇬🇧 AC Manual (EN) <ExternalLink className="w-3 h-3" />
+              </a>
+              <a
+                href="#"
+                onClick={e => e.preventDefault()}
+                className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors text-muted-foreground"
+              >
+                🇪🇸 Manual AC (ES) <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          </InfoCard>
+
+          {/* Contacts */}
+          <InfoCard
+            icon={Phone}
+            iconColor="text-green-500"
+            title="Useful Contacts"
+            open={openCards.contacts}
+            onToggle={() => toggleCard("contacts")}
+          >
+            <div className="text-sm whitespace-pre-wrap text-foreground">
+              {officeInfo?.contacts || "Loading..."}
+            </div>
+          </InfoCard>
+
+          {/* Instructions */}
+          <InfoCard
+            icon={BookOpen}
+            iconColor="text-purple-500"
+            title="Instructions"
+            open={openCards.instructions}
+            onToggle={() => toggleCard("instructions")}
+          >
+            {officeInfo ? (
+              <div className="space-y-4">
+                <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                  {officeInfo.instructions}
+                </div>
+                {officeInfo.instructionsVideo && (
+                  <a
+                    href={officeInfo.instructionsVideo}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                  >
+                    <Video className="w-4 h-4" /> Watch video guide
+                  </a>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground animate-pulse">Loading...</p>
+            )}
+          </InfoCard>
+        </div>
       </section>
 
       {/* ── BOOKING DIALOG ───────────────────────────────────────────────── */}

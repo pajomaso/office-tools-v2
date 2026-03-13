@@ -1,10 +1,10 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAppState } from "@/hooks/use-app-state";
 import { IdentityModal } from "./IdentityModal";
 import { 
   Building2, Calendar, Coffee, Wrench, Shield, Lightbulb,
-  Settings, Users, Clock, LogOut, ChevronDown 
+  Settings, Users, Clock, LogOut, ChevronDown, Lock, Eye, EyeOff
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,10 +15,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
-  const { userName, saveUserName, isAdmin, toggleAdmin } = useAppState();
+  const { userName, saveUserName, isAdmin, exitAdmin, enterAdmin } = useAppState();
+
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [pwError, setPwError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const isSetup = !!userName;
 
@@ -36,13 +52,77 @@ export function Layout({ children }: { children: ReactNode }) {
     { name: "Vendors", href: "/admin/vendors", icon: Users },
     { name: "Schedule", href: "/admin/scheduled", icon: Clock },
     { name: "Suggestions", href: "/suggestions", icon: Lightbulb },
+    { name: "Settings", href: "/admin/settings", icon: Settings },
   ];
 
   const currentNav = isAdmin ? adminNav : staffNav;
 
+  const openPasswordDialog = () => {
+    setPassword("");
+    setPwError("");
+    setShowPw(false);
+    setShowPasswordDialog(true);
+  };
+
+  const handleAdminLogin = async () => {
+    if (!password.trim()) { setPwError("Please enter the admin password."); return; }
+    setLoading(true);
+    setPwError("");
+    const ok = await enterAdmin(password);
+    setLoading(false);
+    if (ok) {
+      setShowPasswordDialog(false);
+    } else {
+      setPwError("Incorrect password. Please try again.");
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col relative w-full overflow-x-hidden">
       <IdentityModal isOpen={!isSetup} onSave={saveUserName} />
+
+      {/* Admin password dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={(open) => !open && setShowPasswordDialog(false)}>
+        <DialogContent className="sm:max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="w-5 h-5 text-primary" /> Admin Access
+            </DialogTitle>
+            <DialogDescription>
+              Enter the admin password to switch to Admin Mode.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="relative">
+              <Input
+                type={showPw ? "text" : "password"}
+                placeholder="Admin password"
+                value={password}
+                onChange={e => { setPassword(e.target.value); setPwError(""); }}
+                onKeyDown={e => e.key === "Enter" && handleAdminLogin()}
+                className={cn("h-12 rounded-xl pr-10", pwError && "border-destructive")}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {pwError && <p className="text-sm text-destructive">{pwError}</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPasswordDialog(false)} className="rounded-xl">
+              Cancel
+            </Button>
+            <Button onClick={handleAdminLogin} disabled={loading} className="rounded-xl">
+              {loading ? "Checking..." : "Enter Admin Mode"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Decorative background element */}
       <div className="absolute top-0 w-full h-64 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none -z-10" />
@@ -105,22 +185,33 @@ export function Layout({ children }: { children: ReactNode }) {
                   <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-xl glass-panel">
                     <div className="p-2 px-3 flex flex-col mb-1">
                       <span className="font-medium">{userName}</span>
+                      {isAdmin && (
+                        <span className="text-xs text-primary font-medium mt-0.5 flex items-center gap-1">
+                          <Shield className="w-3 h-3" /> Admin Mode
+                        </span>
+                      )}
                     </div>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={toggleAdmin}
-                      className="cursor-pointer py-2 px-3 rounded-lg flex items-center gap-2"
-                    >
-                      {isAdmin ? (
-                        <><Shield className="w-4 h-4 text-muted-foreground" /> Switch to Staff Mode</>
-                      ) : (
-                        <><Settings className="w-4 h-4 text-primary" /> Switch to Admin Mode</>
-                      )}
-                    </DropdownMenuItem>
+                    {isAdmin ? (
+                      <DropdownMenuItem 
+                        onClick={exitAdmin}
+                        className="cursor-pointer py-2 px-3 rounded-lg flex items-center gap-2"
+                      >
+                        <Shield className="w-4 h-4 text-muted-foreground" /> Switch to Staff Mode
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem 
+                        onClick={openPasswordDialog}
+                        className="cursor-pointer py-2 px-3 rounded-lg flex items-center gap-2"
+                      >
+                        <Lock className="w-4 h-4 text-primary" /> Switch to Admin Mode
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={() => {
                         localStorage.removeItem('officeEngineUser');
+                        localStorage.removeItem('officeEngineAdmin');
                         window.location.reload();
                       }}
                       className="cursor-pointer py-2 px-3 rounded-lg text-destructive focus:text-destructive flex items-center gap-2"

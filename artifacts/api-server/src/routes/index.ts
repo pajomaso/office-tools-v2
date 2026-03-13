@@ -8,6 +8,7 @@ import vendorsRouter from "./vendors";
 import scheduledMaintenanceRouter from "./scheduled-maintenance";
 import uploadRouter from "./upload";
 import suggestionsRouter from "./suggestions";
+import authRouter from "./auth";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(vendorsRouter);
 router.use(scheduledMaintenanceRouter);
 router.use(uploadRouter);
 router.use(suggestionsRouter);
+router.use(authRouter);
 
 export default router;

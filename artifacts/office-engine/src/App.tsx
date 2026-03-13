@@ -17,6 +17,7 @@ import AdminInventory from "@/pages/AdminInventory";
 import AdminMaintenance from "@/pages/AdminMaintenance";
 import AdminVendors from "@/pages/AdminVendors";
 import AdminScheduled from "@/pages/AdminScheduled";
+import AdminSettings from "@/pages/AdminSettings";
 
 import { useAppState } from "@/hooks/use-app-state";
 
@@ -58,6 +59,7 @@ function Router() {
         <Route path="/admin/maintenance"><AdminRoute component={AdminMaintenance} /></Route>
         <Route path="/admin/vendors"><AdminRoute component={AdminVendors} /></Route>
         <Route path="/admin/scheduled"><AdminRoute component={AdminScheduled} /></Route>
+        <Route path="/admin/settings"><AdminRoute component={AdminSettings} /></Route>
 
         <Route component={NotFound} />
       </Switch>

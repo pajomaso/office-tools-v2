@@ -134,7 +134,21 @@ export default function Rooms() {
 
   const getBookingForSlot = (date: Date, time: string) => {
     const dStr = format(date, 'yyyy-MM-dd');
-    return bookings.find(b => b.date === dStr && b.startTime === time);
+    const slotEnd = addMinutesToTime(time, 60);
+    // Show a booking in this slot if it overlaps (starts before slot ends AND ends after slot starts)
+    return bookings.find(b => {
+      if (b.date !== dStr) return false;
+      return b.startTime < slotEnd && b.endTime > time;
+    });
+  };
+
+  // Returns true if this is the first slot where the booking appears (to know where to show the title)
+  const isBookingStart = (booking: any, time: string) => {
+    const prevSlotTime = HOURS[HOURS.indexOf(time) - 1];
+    if (!prevSlotTime) return true;
+    const prevSlotEnd = addMinutesToTime(prevSlotTime, 60);
+    // If the booking started before the current slot start, it was visible in a previous slot
+    return booking.startTime >= time || booking.startTime >= prevSlotEnd;
   };
 
   if (loadingRooms) return <div className="p-8 text-center text-muted-foreground animate-pulse">Loading rooms...</div>;
@@ -272,23 +286,28 @@ export default function Rooms() {
                     {weekDays.map((day, i) => {
                       const booking = getBookingForSlot(day, hour);
                       const isPast = day < new Date(new Date().setHours(0,0,0,0));
+                      const isFirstSlot = booking ? isBookingStart(booking, hour) : false;
+                      const isMine = booking?.userName === userName;
                       
                       return (
                         <div key={i} className="h-16 relative">
                           {booking ? (
                             <div className={cn(
-                              "absolute inset-0 p-2 rounded-xl shadow-sm flex flex-col justify-between overflow-hidden transition-all",
-                              booking.userName === userName 
-                                ? "bg-primary text-primary-foreground" 
-                                : "bg-slate-100 border border-slate-200 text-slate-800"
+                              "absolute inset-0 px-2 py-1 overflow-hidden transition-all",
+                              isFirstSlot ? "rounded-xl shadow-sm" : "border-l-2",
+                              isMine
+                                ? isFirstSlot ? "bg-primary text-primary-foreground" : "bg-primary/80 text-primary-foreground border-primary-foreground/30"
+                                : isFirstSlot ? "bg-slate-100 border border-slate-200 text-slate-800" : "bg-slate-100 text-slate-600 border-slate-300"
                             )}>
-                              <div>
-                                <p className="text-xs font-bold truncate">{booking.title}</p>
-                                <p className={cn("text-[10px] truncate", booking.userName === userName ? "text-primary-foreground/80" : "text-slate-500")}>
-                                  {booking.userName}
-                                </p>
-                              </div>
-                              {booking.userName === userName && (
+                              {isFirstSlot && (
+                                <div>
+                                  <p className="text-xs font-bold truncate leading-tight">{booking.title}</p>
+                                  <p className={cn("text-[10px] truncate", isMine ? "text-primary-foreground/80" : "text-slate-500")}>
+                                    {booking.userName} · {formatTime(booking.startTime)}–{formatTime(booking.endTime)}
+                                  </p>
+                                </div>
+                              )}
+                              {isMine && isFirstSlot && (
                                 <button 
                                   onClick={() => deleteBooking.mutate({ id: booking.id })}
                                   className="absolute bottom-1 right-1 p-1.5 rounded-lg bg-white/20 hover:bg-white/40 transition-colors"

@@ -5,3 +5,4 @@ export * from "./maintenance";
 export * from "./vendors";
 export * from "./scheduled-maintenance";
 export * from "./suggestions";
+export * from "./settings";

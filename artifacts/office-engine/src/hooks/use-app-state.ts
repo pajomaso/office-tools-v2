@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export function useAppState() {
   const [userName, setUserName] = useState(() => {
@@ -14,16 +14,41 @@ export function useAppState() {
     setUserName(name);
   };
 
+  const enterAdmin = async (password: string): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/auth/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      if (res.ok) {
+        localStorage.setItem('officeEngineAdmin', 'true');
+        setIsAdmin(true);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
+  const exitAdmin = () => {
+    localStorage.setItem('officeEngineAdmin', 'false');
+    setIsAdmin(false);
+  };
+
   const toggleAdmin = () => {
-    const newState = !isAdmin;
-    localStorage.setItem('officeEngineAdmin', String(newState));
-    setIsAdmin(newState);
+    if (isAdmin) {
+      exitAdmin();
+    }
   };
 
   return {
     userName,
     saveUserName,
     isAdmin,
-    toggleAdmin
+    toggleAdmin,
+    enterAdmin,
+    exitAdmin,
   };
 }

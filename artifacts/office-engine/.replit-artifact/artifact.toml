@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "The Office Engine"
+version = "1.0.0"
+id = "artifacts/office-engine"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+localPort = 24065
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/office-engine run dev"
+
+[services.env]
+PORT = "24065"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/office-engine", "run", "build"]
+publicDir = "artifacts/office-engine/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"

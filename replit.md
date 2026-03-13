@@ -1,8 +1,8 @@
-# Workspace
+# The Office Engine
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+A centralized office management application with Staff and Admin interfaces. Covers three pillars: Room Reservations, Inventory Requests, and Maintenance Ticketing.
 
 ## Stack
 
@@ -10,87 +10,102 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Node.js version**: 24
 - **Package manager**: pnpm
 - **TypeScript version**: 5.9
-- **API framework**: Express 5
+- **Frontend**: React + Vite (artifacts/office-engine)
+- **API framework**: Express 5 (artifacts/api-server)
 - **Database**: PostgreSQL + Drizzle ORM
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+- **UI**: shadcn/ui + Tailwind CSS v4
+- **Routing**: Wouter
+- **State/Data**: TanStack React Query + generated hooks
+
+## Features
+
+### Room Booking ("The Peacekeeper")
+- Weekly calendar grid (8am-6pm, Mon-Sun)
+- 3 rooms: The Boardroom (12), The Huddle Pod (6), The Innovation Lab (20)
+- Anti-double-booking validation on server side
+- Users can only cancel/edit their own bookings
+- Admin: full booking management + edit room names/descriptions/photos
+
+### Pantry & Supplies ("The Inventory Manager")
+- Wishlist request cards with category and urgency badges
+- Upvoting with localStorage deduplication per session
+- Form to submit new requests (itemName, category, urgency)
+- Admin: status management (Pending/Ordered/Stocked/Denied), delete requests
+
+### Maintenance ("The Fix-It Hub")
+- Public issue board with status badges
+- Photo upload via file input (sent to /api/upload)
+- Priority levels: Urgent (red) vs General (gray)
+- Admin: status toggles (Reported → In Progress → Fixed)
+- Admin vendor directory (Plumber, Electrician, IT, HVAC, Cleaning, General)
+- Admin scheduled maintenance log with frequency and due dates
+
+### Auth
+- No login required — users enter their name on first visit (stored in localStorage)
+- Admin mode toggled via header button (stored in localStorage)
 
 ## Structure
 
 ```text
-artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
-├── lib/                    # Shared libraries
-│   ├── api-spec/           # OpenAPI spec + Orval codegen config
-│   ├── api-client-react/   # Generated React Query hooks
-│   ├── api-zod/            # Generated Zod schemas from OpenAPI
-│   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+artifacts/
+├── api-server/           # Express 5 API (port 8080)
+│   └── src/routes/
+│       ├── rooms.ts
+│       ├── bookings.ts
+│       ├── inventory.ts
+│       ├── maintenance.ts
+│       ├── vendors.ts
+│       ├── scheduled-maintenance.ts
+│       └── upload.ts
+└── office-engine/        # React + Vite frontend (port 24065, previewPath: /)
+    └── src/
+        ├── pages/
+        │   ├── Rooms.tsx
+        │   ├── Inventory.tsx
+        │   ├── Maintenance.tsx
+        │   ├── AdminRooms.tsx
+        │   ├── AdminInventory.tsx
+        │   ├── AdminMaintenance.tsx
+        │   ├── AdminVendors.tsx
+        │   └── AdminScheduled.tsx
+        ├── components/
+        │   ├── Layout.tsx
+        │   └── IdentityModal.tsx
+        └── hooks/
+            └── use-app-state.ts
+lib/
+├── api-spec/openapi.yaml  # Full API contract
+├── api-client-react/      # Generated React Query hooks
+├── api-zod/               # Generated Zod schemas
+└── db/src/schema/
+    ├── rooms.ts
+    ├── bookings.ts
+    ├── inventory.ts
+    ├── maintenance.ts
+    ├── vendors.ts
+    └── scheduled-maintenance.ts
 ```
 
-## TypeScript & Composite Projects
+## Database Tables
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+- `rooms` — Room definitions with name, description, photoUrl, capacity
+- `bookings` — Room reservations with date/time conflict prevention
+- `inventory_requests` — Pantry/supply wishlist items with upvotes and status
+- `maintenance_tickets` — Repair tickets with photo, priority, status
+- `vendors` — Admin-only vendor contact directory
+- `scheduled_maintenance` — Recurring task log with frequency and due dates
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+## Seeded Data
 
-## Root Scripts
+- 3 default rooms (The Boardroom, The Huddle Pod, The Innovation Lab)
+- 4 vendor contacts (FastFix Plumbing, Spark Electric, CoolAir HVAC, TechSupport Pro)
+- 4 scheduled maintenance tasks (AC filters, fire extinguisher, elevator, pest control)
 
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
+## Development
 
-## Packages
-
-### `artifacts/api-server` (`@workspace/api-server`)
-
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
-
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
-
-### `lib/db` (`@workspace/db`)
-
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
-
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
-
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
-
-### `lib/api-spec` (`@workspace/api-spec`)
-
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+- API server: `pnpm --filter @workspace/api-server run dev`
+- Frontend: `pnpm --filter @workspace/office-engine run dev`
+- DB push: `pnpm --filter @workspace/db run push`
+- Codegen: `pnpm --filter @workspace/api-spec run codegen`

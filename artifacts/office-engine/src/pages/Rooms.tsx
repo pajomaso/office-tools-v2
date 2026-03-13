@@ -1,0 +1,290 @@
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { 
+  useGetRooms, 
+  useGetBookings, 
+  useCreateBooking, 
+  useDeleteBooking,
+  getGetBookingsQueryKey
+} from "@workspace/api-client-react";
+import { useAppState } from "@/hooks/use-app-state";
+import { format, addDays, startOfWeek, isSameDay, parseISO } from "date-fns";
+import { Building2, Calendar, Clock, MapPin, Users, Trash2, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { formatTime, cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+
+const HOURS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
+
+export default function Rooms() {
+  const { userName } = useAppState();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [activeRoomId, setActiveRoomId] = useState<number | null>(null);
+  
+  const { data: rooms = [], isLoading: loadingRooms } = useGetRooms();
+  
+  // Format date for API (YYYY-MM-DD)
+  const dateStr = format(selectedDate, 'yyyy-MM-dd');
+  
+  const { data: bookings = [], isLoading: loadingBookings } = useGetBookings({ 
+    date: dateStr,
+    roomId: activeRoomId || undefined
+  });
+
+  const createBooking = useCreateBooking({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetBookingsQueryKey() });
+        toast({ title: "Booking confirmed!", description: "Your room has been reserved." });
+        setBookingModal(null);
+      },
+      onError: (err) => {
+        toast({ variant: "destructive", title: "Booking failed", description: err.message || "Slot might be taken." });
+      }
+    }
+  });
+
+  const deleteBooking = useDeleteBooking({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetBookingsQueryKey() });
+        toast({ title: "Booking cancelled" });
+      }
+    }
+  });
+
+  // Default to first room if none selected
+  if (rooms.length > 0 && activeRoomId === null) {
+    setActiveRoomId(rooms[0].id);
+  }
+
+  const activeRoom = rooms.find(r => r.id === activeRoomId);
+
+  // Generate week days (Mon-Fri)
+  const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
+  const weekDays = Array.from({ length: 5 }).map((_, i) => addDays(start, i));
+
+  // Modal State
+  const [bookingModal, setBookingModal] = useState<{room: any, date: Date, time: string} | null>(null);
+  const [title, setTitle] = useState("");
+
+  const handleBook = () => {
+    if (!bookingModal || !title.trim()) return;
+    
+    // Calculate end time (+1 hour)
+    const [h, m] = bookingModal.time.split(':');
+    const endH = (parseInt(h) + 1).toString().padStart(2, '0');
+    const endTime = `${endH}:${m}`;
+
+    createBooking.mutate({
+      data: {
+        roomId: bookingModal.room.id,
+        userName,
+        title: title.trim(),
+        date: format(bookingModal.date, 'yyyy-MM-dd'),
+        startTime: bookingModal.time,
+        endTime: endTime
+      }
+    });
+  };
+
+  const getBookingForSlot = (date: Date, time: string) => {
+    const dStr = format(date, 'yyyy-MM-dd');
+    return bookings.find(b => b.date === dStr && b.startTime === time);
+  };
+
+  if (loadingRooms) return <div className="p-8 text-center text-muted-foreground animate-pulse">Loading rooms...</div>;
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-display font-bold text-foreground">Room Booking</h1>
+          <p className="text-muted-foreground mt-1">Reserve a space for your next meeting.</p>
+        </div>
+      </div>
+
+      {/* Room Selector */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {rooms.map(room => (
+          <Card 
+            key={room.id}
+            className={cn(
+              "overflow-hidden cursor-pointer transition-all duration-300 border-2",
+              activeRoomId === room.id 
+                ? "border-primary shadow-lg ring-4 ring-primary/10" 
+                : "border-transparent hover:border-border hover:shadow-md opacity-80 hover:opacity-100"
+            )}
+            onClick={() => setActiveRoomId(room.id)}
+          >
+            <div className="h-32 bg-muted relative">
+              {room.photoUrl ? (
+                <img src={room.photoUrl} alt={room.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+                  <Building2 className="w-10 h-10 text-slate-300" />
+                </div>
+              )}
+              {activeRoomId === room.id && (
+                <div className="absolute top-2 right-2 bg-primary text-white p-1 rounded-full shadow-sm">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+              )}
+            </div>
+            <div className="p-4">
+              <h3 className="font-bold text-lg">{room.name}</h3>
+              <div className="flex items-center text-sm text-muted-foreground mt-1 gap-4">
+                <span className="flex items-center gap-1"><Users className="w-4 h-4"/> {room.capacity}</span>
+                {room.description && <span className="flex items-center gap-1"><MapPin className="w-4 h-4"/> {room.description}</span>}
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Calendar View */}
+      {activeRoom && (
+        <Card className="p-6 rounded-2xl shadow-sm border-border/50 bg-white/50 backdrop-blur-sm">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-primary" />
+              {format(start, 'MMMM yyyy')}
+            </h2>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setSelectedDate(addDays(selectedDate, -7))}>Prev Week</Button>
+              <Button variant="outline" onClick={() => setSelectedDate(new Date())}>Today</Button>
+              <Button variant="outline" onClick={() => setSelectedDate(addDays(selectedDate, 7))}>Next Week</Button>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <div className="min-w-[800px]">
+              {/* Header */}
+              <div className="grid grid-cols-6 border-b border-border pb-4 mb-4 gap-4">
+                <div className="font-medium text-muted-foreground text-sm flex items-end">Time</div>
+                {weekDays.map((day, i) => (
+                  <div key={i} className={cn(
+                    "text-center p-2 rounded-xl transition-colors",
+                    isSameDay(day, new Date()) ? "bg-primary/10 text-primary font-bold" : "text-foreground"
+                  )}>
+                    <div className="text-xs uppercase tracking-wider opacity-70 mb-1">{format(day, 'EEE')}</div>
+                    <div className="text-2xl">{format(day, 'd')}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Grid */}
+              <div className="relative">
+                {loadingBookings && (
+                  <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl">
+                    <span className="animate-pulse font-medium">Updating...</span>
+                  </div>
+                )}
+                
+                {HOURS.map(hour => (
+                  <div key={hour} className="grid grid-cols-6 gap-4 py-2 border-b border-border/30 last:border-0 group">
+                    <div className="text-sm text-muted-foreground font-medium flex items-center">
+                      <Clock className="w-3 h-3 mr-1.5 opacity-50"/>
+                      {formatTime(hour)}
+                    </div>
+                    
+                    {weekDays.map((day, i) => {
+                      const booking = getBookingForSlot(day, hour);
+                      const isPast = day < new Date(new Date().setHours(0,0,0,0));
+                      
+                      return (
+                        <div key={i} className="h-16 relative">
+                          {booking ? (
+                            <div className={cn(
+                              "absolute inset-0 p-2 rounded-xl shadow-sm flex flex-col justify-between overflow-hidden transition-all",
+                              booking.userName === userName 
+                                ? "bg-primary text-primary-foreground" 
+                                : "bg-slate-100 border border-slate-200 text-slate-800"
+                            )}>
+                              <div>
+                                <p className="text-xs font-bold truncate">{booking.title}</p>
+                                <p className={cn("text-[10px] truncate", booking.userName === userName ? "text-primary-foreground/80" : "text-slate-500")}>
+                                  {booking.userName}
+                                </p>
+                              </div>
+                              {booking.userName === userName && (
+                                <button 
+                                  onClick={() => deleteBooking.mutate({ id: booking.id })}
+                                  className="absolute bottom-1 right-1 p-1.5 rounded-lg bg-white/20 hover:bg-white/40 transition-colors"
+                                  title="Cancel booking"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <button
+                              disabled={isPast}
+                              onClick={() => setBookingModal({ room: activeRoom, date: day, time: hour })}
+                              className={cn(
+                                "absolute inset-0 w-full rounded-xl border border-dashed border-border/50 flex items-center justify-center transition-all",
+                                isPast 
+                                  ? "bg-muted/30 cursor-not-allowed opacity-50" 
+                                  : "hover:border-primary hover:bg-primary/5 cursor-pointer opacity-0 group-hover:opacity-100"
+                              )}
+                            >
+                              <span className="text-xs font-medium text-primary">Book Slot</span>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Booking Modal */}
+      <Dialog open={!!bookingModal} onOpenChange={(open) => !open && setBookingModal(null)}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Book {bookingModal?.room.name}</DialogTitle>
+            <DialogDescription>
+              {bookingModal && format(bookingModal.date, 'EEEE, MMMM d, yyyy')} at {bookingModal && formatTime(bookingModal.time)}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Meeting Title</label>
+              <Input 
+                placeholder="e.g. Sync with Marketing" 
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                autoFocus
+                className="h-12 rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Booked By</label>
+              <Input value={userName} disabled className="h-12 rounded-xl bg-muted" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBookingModal(null)} className="h-12 rounded-xl">Cancel</Button>
+            <Button 
+              onClick={handleBook} 
+              disabled={!title.trim() || createBooking.isPending}
+              className="h-12 rounded-xl px-8"
+            >
+              {createBooking.isPending ? "Confirming..." : "Confirm Booking"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

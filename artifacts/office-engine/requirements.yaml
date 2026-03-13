@@ -1,0 +1,26 @@
+packages:
+  "framer-motion": "Smooth page transitions and micro-interactions"
+  "date-fns": "Reliable date math for calendar grid generation"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility to efficiently merge Tailwind CSS classes"
+  "@hookform/resolvers": "Form validation resolution"
+  "react-hook-form": "Form state management"
+
+images:
+  - path: "artifacts/office-engine/public/images/room-alpha.png"
+    description: "Modern bright corporate meeting room with glass walls, a sleek wood table, ergonomic chairs, and a screen on the wall. Professional, airy, high quality lighting."
+    aspect_ratio: "16:9"
+  - path: "artifacts/office-engine/public/images/room-beta.png"
+    description: "Cozy creative brainstorming room with a comfortable sofa, whiteboard, colorful sticky notes, and a coffee table. Warm, inviting, natural light."
+    aspect_ratio: "16:9"
+  - path: "artifacts/office-engine/public/images/room-omega.png"
+    description: "Large executive board room with a massive dark wood table, leather chairs, panoramic city view out of large windows. Luxurious, imposing, corporate."
+    aspect_ratio: "16:9"
+  - path: "artifacts/office-engine/public/images/hero-bg.png"
+    description: "Abstract geometric background with soft overlapping translucent shapes in calm indigo, slate, and light blue. Minimalist, premium corporate aesthetic, airy."
+    aspect_ratio: "16:9"
+
+notes:
+  - using generated API hooks from @workspace/api-client-react
+  - wouter for routing
+  - relying on tailwind for styling and framer-motion for animations

@@ -23,6 +23,7 @@ import type {
   CreateMaintenanceTicketRequest,
   CreateRoomRequest,
   CreateScheduledMaintenanceRequest,
+  CreateSuggestionRequest,
   CreateVendorRequest,
   ErrorResponse,
   GetBookingsParams,
@@ -31,10 +32,12 @@ import type {
   MaintenanceTicket,
   Room,
   ScheduledMaintenance,
+  Suggestion,
   UpdateBookingRequest,
   UpdateInventoryRequestBody,
   UpdateMaintenanceTicketRequest,
   UpdateRoomRequest,
+  UpdateSuggestionRequest,
   UploadFileBody,
   UploadResponse,
   Vendor,
@@ -2047,6 +2050,338 @@ export const useDeleteScheduledMaintenance = <
   TContext
 > => {
   return useMutation(getDeleteScheduledMaintenanceMutationOptions(options));
+};
+
+/**
+ * @summary Get all suggestions
+ */
+export const getGetSuggestionsUrl = () => {
+  return `/api/suggestions`;
+};
+
+export const getSuggestions = async (
+  options?: RequestInit,
+): Promise<Suggestion[]> => {
+  return customFetch<Suggestion[]>(getGetSuggestionsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSuggestionsQueryKey = () => {
+  return [`/api/suggestions`] as const;
+};
+
+export const getGetSuggestionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSuggestions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSuggestions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSuggestionsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSuggestions>>> = ({
+    signal,
+  }) => getSuggestions({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSuggestions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSuggestionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSuggestions>>
+>;
+export type GetSuggestionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get all suggestions
+ */
+
+export function useGetSuggestions<
+  TData = Awaited<ReturnType<typeof getSuggestions>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSuggestions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSuggestionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Submit a suggestion
+ */
+export const getCreateSuggestionUrl = () => {
+  return `/api/suggestions`;
+};
+
+export const createSuggestion = async (
+  createSuggestionRequest: CreateSuggestionRequest,
+  options?: RequestInit,
+): Promise<Suggestion> => {
+  return customFetch<Suggestion>(getCreateSuggestionUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createSuggestionRequest),
+  });
+};
+
+export const getCreateSuggestionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSuggestion>>,
+    TError,
+    { data: BodyType<CreateSuggestionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createSuggestion>>,
+  TError,
+  { data: BodyType<CreateSuggestionRequest> },
+  TContext
+> => {
+  const mutationKey = ["createSuggestion"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createSuggestion>>,
+    { data: BodyType<CreateSuggestionRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createSuggestion(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateSuggestionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createSuggestion>>
+>;
+export type CreateSuggestionMutationBody = BodyType<CreateSuggestionRequest>;
+export type CreateSuggestionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Submit a suggestion
+ */
+export const useCreateSuggestion = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSuggestion>>,
+    TError,
+    { data: BodyType<CreateSuggestionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createSuggestion>>,
+  TError,
+  { data: BodyType<CreateSuggestionRequest> },
+  TContext
+> => {
+  return useMutation(getCreateSuggestionMutationOptions(options));
+};
+
+/**
+ * @summary Update a suggestion (admin - change status or add reply)
+ */
+export const getUpdateSuggestionUrl = (id: number) => {
+  return `/api/suggestions/${id}`;
+};
+
+export const updateSuggestion = async (
+  id: number,
+  updateSuggestionRequest: UpdateSuggestionRequest,
+  options?: RequestInit,
+): Promise<Suggestion> => {
+  return customFetch<Suggestion>(getUpdateSuggestionUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateSuggestionRequest),
+  });
+};
+
+export const getUpdateSuggestionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSuggestion>>,
+    TError,
+    { id: number; data: BodyType<UpdateSuggestionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateSuggestion>>,
+  TError,
+  { id: number; data: BodyType<UpdateSuggestionRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateSuggestion"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateSuggestion>>,
+    { id: number; data: BodyType<UpdateSuggestionRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateSuggestion(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateSuggestionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateSuggestion>>
+>;
+export type UpdateSuggestionMutationBody = BodyType<UpdateSuggestionRequest>;
+export type UpdateSuggestionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a suggestion (admin - change status or add reply)
+ */
+export const useUpdateSuggestion = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSuggestion>>,
+    TError,
+    { id: number; data: BodyType<UpdateSuggestionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateSuggestion>>,
+  TError,
+  { id: number; data: BodyType<UpdateSuggestionRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateSuggestionMutationOptions(options));
+};
+
+/**
+ * @summary Delete a suggestion (admin)
+ */
+export const getDeleteSuggestionUrl = (id: number) => {
+  return `/api/suggestions/${id}`;
+};
+
+export const deleteSuggestion = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteSuggestionUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteSuggestionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSuggestion>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteSuggestion>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteSuggestion"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteSuggestion>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteSuggestion(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteSuggestionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteSuggestion>>
+>;
+
+export type DeleteSuggestionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a suggestion (admin)
+ */
+export const useDeleteSuggestion = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSuggestion>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteSuggestion>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteSuggestionMutationOptions(options));
 };
 
 /**

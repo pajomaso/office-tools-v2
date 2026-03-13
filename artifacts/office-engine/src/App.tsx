@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import Rooms from "@/pages/Rooms";
 import Inventory from "@/pages/Inventory";
 import Maintenance from "@/pages/Maintenance";
+import Suggestions from "@/pages/Suggestions";
 
 // Admin Pages
 import AdminRooms from "@/pages/AdminRooms";
@@ -49,6 +50,7 @@ function Router() {
         <Route path="/rooms" component={Rooms} />
         <Route path="/inventory" component={Inventory} />
         <Route path="/maintenance" component={Maintenance} />
+        <Route path="/suggestions" component={Suggestions} />
 
         {/* Admin Routes */}
         <Route path="/admin/rooms"><AdminRoute component={AdminRooms} /></Route>

@@ -262,6 +262,74 @@ export interface CreateScheduledMaintenanceRequest {
   nextDue: string;
 }
 
+export type SuggestionCategory =
+  (typeof SuggestionCategory)[keyof typeof SuggestionCategory];
+
+export const SuggestionCategory = {
+  General: "General",
+  Workplace: "Workplace",
+  Perks: "Perks",
+  Process: "Process",
+  Safety: "Safety",
+  Other: "Other",
+} as const;
+
+export type SuggestionStatus =
+  (typeof SuggestionStatus)[keyof typeof SuggestionStatus];
+
+export const SuggestionStatus = {
+  Open: "Open",
+  Under_Review: "Under Review",
+  Implemented: "Implemented",
+  Declined: "Declined",
+} as const;
+
+export interface Suggestion {
+  id: number;
+  title: string;
+  body: string;
+  category: SuggestionCategory;
+  submittedBy: string;
+  status: SuggestionStatus;
+  adminReply?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateSuggestionRequestCategory =
+  (typeof CreateSuggestionRequestCategory)[keyof typeof CreateSuggestionRequestCategory];
+
+export const CreateSuggestionRequestCategory = {
+  General: "General",
+  Workplace: "Workplace",
+  Perks: "Perks",
+  Process: "Process",
+  Safety: "Safety",
+  Other: "Other",
+} as const;
+
+export interface CreateSuggestionRequest {
+  title: string;
+  body: string;
+  category: CreateSuggestionRequestCategory;
+  submittedBy: string;
+}
+
+export type UpdateSuggestionRequestStatus =
+  (typeof UpdateSuggestionRequestStatus)[keyof typeof UpdateSuggestionRequestStatus];
+
+export const UpdateSuggestionRequestStatus = {
+  Open: "Open",
+  Under_Review: "Under Review",
+  Implemented: "Implemented",
+  Declined: "Declined",
+} as const;
+
+export interface UpdateSuggestionRequest {
+  status?: UpdateSuggestionRequestStatus;
+  adminReply?: string | null;
+}
+
 export interface UploadResponse {
   url: string;
   filename: string;

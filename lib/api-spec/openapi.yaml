@@ -21,6 +21,8 @@ tags:
     description: Vendor directory operations
   - name: scheduled-maintenance
     description: Scheduled maintenance operations
+  - name: suggestions
+    description: Suggestions box operations
   - name: uploads
     description: File upload operations
 paths:
@@ -468,6 +470,76 @@ paths:
         "204":
           description: Task deleted
 
+  /suggestions:
+    get:
+      operationId: getSuggestions
+      tags: [suggestions]
+      summary: Get all suggestions
+      responses:
+        "200":
+          description: List of suggestions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Suggestion"
+    post:
+      operationId: createSuggestion
+      tags: [suggestions]
+      summary: Submit a suggestion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSuggestionRequest"
+      responses:
+        "201":
+          description: Suggestion created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Suggestion"
+
+  /suggestions/{id}:
+    put:
+      operationId: updateSuggestion
+      tags: [suggestions]
+      summary: Update a suggestion (admin - change status or add reply)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSuggestionRequest"
+      responses:
+        "200":
+          description: Suggestion updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Suggestion"
+    delete:
+      operationId: deleteSuggestion
+      tags: [suggestions]
+      summary: Delete a suggestion (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Suggestion deleted
+
   /upload:
     post:
       operationId: uploadFile
@@ -863,6 +935,70 @@ components:
         - taskName
         - frequencyDays
         - nextDue
+
+    Suggestion:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        body:
+          type: string
+        category:
+          type: string
+          enum: [General, Workplace, Perks, Process, Safety, Other]
+        submittedBy:
+          type: string
+        status:
+          type: string
+          enum: [Open, Under Review, Implemented, Declined]
+        adminReply:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - body
+        - category
+        - submittedBy
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateSuggestionRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        body:
+          type: string
+        category:
+          type: string
+          enum: [General, Workplace, Perks, Process, Safety, Other]
+        submittedBy:
+          type: string
+      required:
+        - title
+        - body
+        - category
+        - submittedBy
+
+    UpdateSuggestionRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [Open, Under Review, Implemented, Declined]
+        adminReply:
+          type: string
+          nullable: true
 
     UploadResponse:
       type: object

@@ -400,6 +400,86 @@ export const DeleteScheduledMaintenanceParams = zod.object({
 });
 
 /**
+ * @summary Get all suggestions
+ */
+export const GetSuggestionsResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  body: zod.string(),
+  category: zod.enum([
+    "General",
+    "Workplace",
+    "Perks",
+    "Process",
+    "Safety",
+    "Other",
+  ]),
+  submittedBy: zod.string(),
+  status: zod.enum(["Open", "Under Review", "Implemented", "Declined"]),
+  adminReply: zod.string().nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+export const GetSuggestionsResponse = zod.array(GetSuggestionsResponseItem);
+
+/**
+ * @summary Submit a suggestion
+ */
+export const CreateSuggestionBody = zod.object({
+  title: zod.string(),
+  body: zod.string(),
+  category: zod.enum([
+    "General",
+    "Workplace",
+    "Perks",
+    "Process",
+    "Safety",
+    "Other",
+  ]),
+  submittedBy: zod.string(),
+});
+
+/**
+ * @summary Update a suggestion (admin - change status or add reply)
+ */
+export const UpdateSuggestionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateSuggestionBody = zod.object({
+  status: zod
+    .enum(["Open", "Under Review", "Implemented", "Declined"])
+    .optional(),
+  adminReply: zod.string().nullish(),
+});
+
+export const UpdateSuggestionResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  body: zod.string(),
+  category: zod.enum([
+    "General",
+    "Workplace",
+    "Perks",
+    "Process",
+    "Safety",
+    "Other",
+  ]),
+  submittedBy: zod.string(),
+  status: zod.enum(["Open", "Under Review", "Implemented", "Declined"]),
+  adminReply: zod.string().nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Delete a suggestion (admin)
+ */
+export const DeleteSuggestionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
  * @summary Upload a file (image)
  */
 export const UploadFileBody = zod.object({

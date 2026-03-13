@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useAppState } from "@/hooks/use-app-state";
 import { IdentityModal } from "./IdentityModal";
 import { 
-  Building2, Calendar, Coffee, Wrench, Shield, 
+  Building2, Calendar, Coffee, Wrench, Shield, Lightbulb,
   Settings, Users, Clock, LogOut, ChevronDown 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,6 +26,7 @@ export function Layout({ children }: { children: ReactNode }) {
     { name: "Rooms", href: "/rooms", icon: Calendar },
     { name: "Inventory", href: "/inventory", icon: Coffee },
     { name: "Maintenance", href: "/maintenance", icon: Wrench },
+    { name: "Suggestions", href: "/suggestions", icon: Lightbulb },
   ];
 
   const adminNav = [
@@ -34,6 +35,7 @@ export function Layout({ children }: { children: ReactNode }) {
     { name: "Tickets", href: "/admin/maintenance", icon: Wrench },
     { name: "Vendors", href: "/admin/vendors", icon: Users },
     { name: "Schedule", href: "/admin/scheduled", icon: Clock },
+    { name: "Suggestions", href: "/suggestions", icon: Lightbulb },
   ];
 
   const currentNav = isAdmin ? adminNav : staffNav;

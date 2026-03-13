@@ -8,11 +8,13 @@ import {
   getGetBookingsQueryKey
 } from "@workspace/api-client-react";
 import { useAppState } from "@/hooks/use-app-state";
-import { format, addDays, startOfWeek, isSameDay, parseISO } from "date-fns";
+import { format, addDays, startOfWeek, isSameDay, addWeeks, subWeeks } from "date-fns";
 import { Building2, Calendar, Clock, MapPin, Users, Trash2, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarWidget } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { formatTime, cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -26,10 +28,10 @@ export default function Rooms() {
   
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activeRoomId, setActiveRoomId] = useState<number | null>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   
   const { data: rooms = [], isLoading: loadingRooms } = useGetRooms();
   
-  // Format date for API (YYYY-MM-DD)
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
   
   const { data: bookings = [], isLoading: loadingBookings } = useGetBookings({ 
@@ -59,25 +61,20 @@ export default function Rooms() {
     }
   });
 
-  // Default to first room if none selected
   if (rooms.length > 0 && activeRoomId === null) {
     setActiveRoomId(rooms[0].id);
   }
 
   const activeRoom = rooms.find(r => r.id === activeRoomId);
 
-  // Generate week days (Mon-Fri)
   const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 5 }).map((_, i) => addDays(start, i));
 
-  // Modal State
   const [bookingModal, setBookingModal] = useState<{room: any, date: Date, time: string} | null>(null);
   const [title, setTitle] = useState("");
 
   const handleBook = () => {
     if (!bookingModal || !title.trim()) return;
-    
-    // Calculate end time (+1 hour)
     const [h, m] = bookingModal.time.split(':');
     const endH = (parseInt(h) + 1).toString().padStart(2, '0');
     const endTime = `${endH}:${m}`;
@@ -141,7 +138,7 @@ export default function Rooms() {
               <h3 className="font-bold text-lg">{room.name}</h3>
               <div className="flex items-center text-sm text-muted-foreground mt-1 gap-4">
                 <span className="flex items-center gap-1"><Users className="w-4 h-4"/> {room.capacity}</span>
-                {room.description && <span className="flex items-center gap-1"><MapPin className="w-4 h-4"/> {room.description}</span>}
+                {room.description && <span className="flex items-center gap-1 truncate"><MapPin className="w-4 h-4 shrink-0"/> <span className="truncate">{room.description}</span></span>}
               </div>
             </div>
           </Card>
@@ -151,15 +148,48 @@ export default function Rooms() {
       {/* Calendar View */}
       {activeRoom && (
         <Card className="p-6 rounded-2xl shadow-sm border-border/50 bg-white/50 backdrop-blur-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-primary" />
-              {format(start, 'MMMM yyyy')}
-            </h2>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setSelectedDate(addDays(selectedDate, -7))}>Prev Week</Button>
-              <Button variant="outline" onClick={() => setSelectedDate(new Date())}>Today</Button>
-              <Button variant="outline" onClick={() => setSelectedDate(addDays(selectedDate, 7))}>Next Week</Button>
+          <div className="flex flex-wrap justify-between items-center mb-6 gap-3">
+            {/* Clickable date header with popover calendar */}
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger asChild>
+                <button className="flex items-center gap-2 group hover:text-primary transition-colors rounded-lg px-2 py-1 -mx-2 hover:bg-primary/5">
+                  <Calendar className="w-5 h-5 text-primary" />
+                  <h2 className="text-xl font-bold">
+                    {format(start, 'MMMM yyyy')}
+                  </h2>
+                  <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors font-normal ml-1">
+                    Week of {format(start, 'MMM d')}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 rounded-2xl shadow-xl border-border" align="start">
+                <div className="p-3 border-b border-border/50 bg-muted/30 rounded-t-2xl">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Jump to a date</p>
+                </div>
+                <CalendarWidget
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => {
+                    if (date) { setSelectedDate(date); setCalendarOpen(false); }
+                  }}
+                  initialFocus
+                  className="p-3"
+                />
+              </PopoverContent>
+            </Popover>
+
+            {/* Week navigation */}
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" className="rounded-lg" onClick={() => setSelectedDate(d => subWeeks(d, 1))}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="sm" className="rounded-lg px-4" onClick={() => setSelectedDate(new Date())}>
+                Today
+              </Button>
+              <Button variant="outline" size="icon" className="rounded-lg" onClick={() => setSelectedDate(d => addWeeks(d, 1))}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
             </div>
           </div>
 
@@ -169,13 +199,17 @@ export default function Rooms() {
               <div className="grid grid-cols-6 border-b border-border pb-4 mb-4 gap-4">
                 <div className="font-medium text-muted-foreground text-sm flex items-end">Time</div>
                 {weekDays.map((day, i) => (
-                  <div key={i} className={cn(
-                    "text-center p-2 rounded-xl transition-colors",
-                    isSameDay(day, new Date()) ? "bg-primary/10 text-primary font-bold" : "text-foreground"
-                  )}>
+                  <button
+                    key={i}
+                    onClick={() => { setSelectedDate(day); setCalendarOpen(false); }}
+                    className={cn(
+                      "text-center p-2 rounded-xl transition-all hover:bg-primary/5 cursor-pointer",
+                      isSameDay(day, new Date()) ? "bg-primary/10 text-primary font-bold ring-1 ring-primary/30" : "text-foreground hover:text-primary"
+                    )}
+                  >
                     <div className="text-xs uppercase tracking-wider opacity-70 mb-1">{format(day, 'EEE')}</div>
                     <div className="text-2xl">{format(day, 'd')}</div>
-                  </div>
+                  </button>
                 ))}
               </div>
 

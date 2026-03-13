@@ -1,0 +1,150 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "Colfax",
+      "role": "body"
+    },
+    {
+      "family": "Acta",
+      "role": "heading"
+    }
+  ],
+  "colors": {
+    "primary": "#82AEFE",
+    "accent": "#045CFC",
+    "background": "#FFFFFF",
+    "textPrimary": "#045CFC",
+    "link": "#045CFC"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "Colfax",
+      "heading": "Acta"
+    },
+    "fontStacks": {
+      "heading": [
+        "Acta",
+        "serif"
+      ],
+      "body": [
+        "ui-sans-serif",
+        "system-ui",
+        "sans-serif",
+        "Apple Color Emoji",
+        "Segoe UI Emoji",
+        "Segoe UI Symbol",
+        "Noto Color Emoji"
+      ],
+      "paragraph": [
+        "Colfax",
+        "sans-serif"
+      ]
+    },
+    "fontSizes": {
+      "h1": "64px",
+      "h2": "64px",
+      "body": "14px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 8,
+    "borderRadius": "0px"
+  },
+  "components": {
+    "input": {
+      "background": "transparent",
+      "textColor": "#403F4C",
+      "borderColor": null,
+      "borderRadius": "0px",
+      "borderRadiusCorners": {
+        "topLeft": "0px",
+        "topRight": "0px",
+        "bottomRight": "0px",
+        "bottomLeft": "0px"
+      },
+      "shadow": "none"
+    },
+    "buttonPrimary": {
+      "background": "#82AEFE",
+      "textColor": "#000000",
+      "borderRadius": "0px",
+      "borderRadiusCorners": {
+        "topLeft": "0px",
+        "topRight": "0px",
+        "bottomRight": "0px",
+        "bottomLeft": "0px"
+      },
+      "shadow": "none"
+    },
+    "buttonSecondary": {
+      "background": "transparent",
+      "textColor": "#045CFC",
+      "borderColor": "#045CFC",
+      "borderRadius": "44px",
+      "borderRadiusCorners": {
+        "topLeft": "44px",
+        "topRight": "44px",
+        "bottomRight": "44px",
+        "bottomLeft": "44px"
+      },
+      "shadow": "none"
+    }
+  },
+  "images": {
+    "logo": "https://subvisual.com/_astro/subvisual-logo.DN5q_Zhp.svg",
+    "favicon": "https://subvisual.com/favicon.svg",
+    "ogImage": "/og-image.png",
+    "logoHref": "File saved at: attached_assets/logoHref.html",
+    "logoAlt": "Subvisual"
+  },
+  "__llm_logo_reasoning": {
+    "selectedIndex": 1,
+    "reasoning": "Selected #1 because it is medium-sized, visible, located in the header, and links to the homepage, making it the primary brand logo.",
+    "confidence": 0.9,
+    "source": "llm"
+  },
+  "__llm_button_reasoning": {
+    "primary": {
+      "index": 0,
+      "text": "Explore Product (Sandbox)",
+      "reasoning": "Button #0 uses the vibrant brand color #82AEFE and has action-oriented text 'Explore Product (Sandbox)', making it the primary CTA."
+    },
+    "secondary": {
+      "index": 2,
+      "text": "Explore Product",
+      "reasoning": "Button #2 has a transparent background with a border, making it a suitable secondary CTA with a different color group than the primary."
+    },
+    "confidence": 0.95
+  },
+  "personality": {
+    "tone": "modern",
+    "energy": "medium",
+    "targetAudience": "tech-savvy professionals"
+  },
+  "designSystem": {
+    "framework": "tailwind",
+    "componentLibrary": ""
+  },
+  "confidence": {
+    "buttons": 0.95,
+    "colors": 0.9,
+    "overall": 0.925
+  },
+  "__llm_metadata": {
+    "logoSelection": {
+      "llmCalled": true,
+      "llmSucceeded": true,
+      "finalSource": "llm",
+      "rawLogoSelection": {
+        "selectedLogoIndex": 1,
+        "selectedLogoReasoning": "Selected #1 because it is medium-sized, visible, located in the header, and links to the homepage, making it the primary brand logo.",
+        "confidence": 0.9
+      }
+    },
+    "buttonClassification": {
+      "llmCalled": true,
+      "llmSucceeded": true
+    }
+  }
+}

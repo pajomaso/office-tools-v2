@@ -1,9 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap');
 @import "tailwindcss";
 
+/*
+  Subvisual brand system:
+  Primary: #045CFC (electric blue)   → hsl(224 98% 50%)
+  Accent:  #82AEFE (light blue)      → hsl(217 99% 75%)
+  Radius:  0px everywhere
+  Fonts:   Inter (body) · DM Serif Display (headings, sub for Acta)
+*/
+
 @theme inline {
-  --font-sans: 'Inter', sans-serif;
-  --font-display: 'Outfit', sans-serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'DM Serif Display', Georgia, serif;
 
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
@@ -30,104 +38,96 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   LIGHT MODE — clean and professional
+   LIGHT MODE
 ───────────────────────────────────────────────────────────────────────────── */
 :root {
-  --background: 210 40% 98%;
-  --foreground: 222 47% 11%;
+  --background: 0 0% 100%;
+  --foreground: 0 0% 4%;
 
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
+  --card-foreground: 0 0% 4%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
+  --popover-foreground: 0 0% 4%;
 
-  --primary: 239 84% 60%;
+  --primary: 224 98% 50%;           /* #045CFC — Subvisual electric blue */
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222 47% 11%;
+  --secondary: 217 99% 94%;         /* Light blue tint */
+  --secondary-foreground: 224 98% 35%;
 
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 40%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 40%;
 
-  --accent: 239 84% 95%;
-  --accent-foreground: 239 84% 40%;
+  --accent: 217 99% 75%;            /* #82AEFE — Subvisual light blue */
+  --accent-foreground: 224 98% 20%;
 
-  --destructive: 0 84% 60%;
+  --destructive: 0 84% 55%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 214 32% 87%;
-  --input: 214 32% 87%;
-  --ring: 239 84% 60%;
+  --border: 0 0% 88%;
+  --input: 0 0% 88%;
+  --ring: 224 98% 50%;
 
-  --radius: 0.75rem;
+  --radius: 0rem;                   /* 0px — Subvisual spec */
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   DARK MODE — "Mission Control" / Brutalist design system
-   #0a0a0a background · #ffffff text · #222 borders · max 4px radius
+   DARK MODE — Subvisual palette on deep charcoal
+   #0a0a0a bg · #ffffff text · #045CFC electric blue · #222 borders · 0px radius
 ───────────────────────────────────────────────────────────────────────────── */
 :root.dark,
 .dark {
-  --background: 0 0% 4%;          /* #0a0a0a */
-  --foreground: 0 0% 98%;         /* #fafafa — near-white */
+  --background: 0 0% 4%;            /* #0a0a0a */
+  --foreground: 0 0% 98%;           /* #fafafa */
 
-  --card: 0 0% 7%;                /* #121212 — lifted card */
+  --card: 0 0% 7%;                  /* #121212 */
   --card-foreground: 0 0% 98%;
 
   --popover: 0 0% 7%;
   --popover-foreground: 0 0% 98%;
 
-  --primary: 0 0% 96%;            /* White as primary — high contrast */
-  --primary-foreground: 0 0% 4%;  /* Dark text on white button */
+  --primary: 224 98% 50%;           /* #045CFC — electric blue stays vivid on dark */
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 0 0% 12%;          /* #1e1e1e */
+  --secondary: 0 0% 12%;            /* #1e1e1e */
   --secondary-foreground: 0 0% 80%;
 
   --muted: 0 0% 12%;
-  --muted-foreground: 0 0% 55%;   /* Readable mid-grey */
+  --muted-foreground: 0 0% 55%;
 
-  --accent: 0 0% 14%;
-  --accent-foreground: 0 0% 90%;
+  --accent: 217 99% 75%;            /* #82AEFE — light blue glow */
+  --accent-foreground: 224 98% 20%;
 
-  --destructive: 0 84% 55%;       /* Sharp red — status only */
+  --destructive: 0 84% 55%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 0 0% 14%;             /* #222 */
-  --input: 0 0% 10%;              /* Slightly lighter than bg */
-  --ring: 0 0% 60%;
+  --border: 0 0% 14%;               /* #222 */
+  --input: 0 0% 10%;
+  --ring: 224 98% 50%;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: 0 0% 4%;
     --foreground: 0 0% 98%;
-
     --card: 0 0% 7%;
     --card-foreground: 0 0% 98%;
-
     --popover: 0 0% 7%;
     --popover-foreground: 0 0% 98%;
-
-    --primary: 0 0% 96%;
-    --primary-foreground: 0 0% 4%;
-
+    --primary: 224 98% 50%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 12%;
     --secondary-foreground: 0 0% 80%;
-
     --muted: 0 0% 12%;
     --muted-foreground: 0 0% 55%;
-
-    --accent: 0 0% 14%;
-    --accent-foreground: 0 0% 90%;
-
+    --accent: 217 99% 75%;
+    --accent-foreground: 224 98% 20%;
     --destructive: 0 84% 55%;
     --destructive-foreground: 0 0% 100%;
-
     --border: 0 0% 14%;
     --input: 0 0% 10%;
-    --ring: 0 0% 60%;
+    --ring: 224 98% 50%;
   }
 }
 
@@ -137,148 +137,105 @@
 @layer base {
   * {
     @apply border-border;
+    border-radius: 0 !important;    /* Subvisual spec: 0px radius globally */
   }
 
   body {
     @apply bg-background text-foreground antialiased font-sans;
-    background-image:
-      radial-gradient(circle at top right, hsl(239 84% 96% / 0.4), transparent 40%),
-      radial-gradient(circle at bottom left, hsl(210 40% 92% / 0.4), transparent 40%);
     background-attachment: fixed;
+    font-size: 14px;                /* Subvisual body: 14px */
   }
 
-  /* Dark mode: flat background, no gradient noise */
+  /* Dark: flat bg, no gradients */
   .dark body,
   :root.dark body {
     background-image: none;
   }
 
   @media (prefers-color-scheme: dark) {
-    body {
-      background-image: none;
-    }
+    body { background-image: none; }
   }
 
+  /* Headings — DM Serif Display (closest free sub for Acta) */
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
-    @apply font-bold tracking-tight;
+    @apply font-normal tracking-tight;  /* Serif display — no extra weight needed */
   }
-}
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   DARK MODE — SHARP EDGES OVERRIDE
-   Clamp all soft radii to 4px max so the UI feels like an engineering tool,
-   not a consumer app. rounded-full stays round (used for avatars/pills).
-───────────────────────────────────────────────────────────────────────────── */
-.dark .rounded-sm,
-.dark .rounded,
-.dark .rounded-md,
-.dark .rounded-lg,
-.dark .rounded-xl,
-.dark .rounded-2xl,
-.dark .rounded-3xl {
-  border-radius: 4px;
-}
+  /* Dark mode heading tracking */
+  .dark h1, :root.dark h1 { letter-spacing: -0.03em; }
+  .dark h2, .dark h3, :root.dark h2, :root.dark h3 { letter-spacing: -0.02em; }
 
-@media (prefers-color-scheme: dark) {
-  .rounded-sm,
-  .rounded,
-  .rounded-md,
-  .rounded-lg,
-  .rounded-xl,
-  .rounded-2xl,
-  .rounded-3xl {
-    border-radius: 4px;
+  @media (prefers-color-scheme: dark) {
+    h1 { letter-spacing: -0.03em; }
+    h2, h3 { letter-spacing: -0.02em; }
   }
-}
-
-/* Override shadcn/ui Dialog itself */
-.dark [role="dialog"] > div,
-.dark [data-slot="dialog-content"] {
-  border-radius: 4px !important;
-}
-
-@media (prefers-color-scheme: dark) {
-  [role="dialog"] > div,
-  [data-slot="dialog-content"] {
-    border-radius: 4px !important;
-  }
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   DARK MODE — TYPOGRAPHY UPGRADES
-───────────────────────────────────────────────────────────────────────────── */
-.dark h1,
-:root.dark h1 {
-  letter-spacing: -0.04em;
-}
-
-.dark h2,
-.dark h3,
-:root.dark h2,
-:root.dark h3 {
-  letter-spacing: -0.02em;
-}
-
-@media (prefers-color-scheme: dark) {
-  h1 { letter-spacing: -0.04em; }
-  h2, h3 { letter-spacing: -0.02em; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
    SCROLLBAR
 ───────────────────────────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: hsl(var(--border));
   border-radius: 0;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground));
+  background: hsl(224 98% 50% / 0.6);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   GLASS PANEL
-   Light: frosted white · Dark: flat solid surface with crisp 1px border
+   GLASS PANEL (login modal)
+   Light: white · Dark: #0d0d0d with #222 border
 ───────────────────────────────────────────────────────────────────────────── */
 .glass-panel {
-  background: hsl(0 0% 100% / 0.75);
-  backdrop-filter: blur(20px);
-  border: 1px solid hsl(0 0% 100% / 0.3);
-  box-shadow: 0 8px 32px hsl(0 0% 0% / 0.12);
+  background: hsl(0 0% 100%);
+  border: 1px solid hsl(0 0% 88%);
+  box-shadow: none;
 }
 
 .dark .glass-panel,
 :root.dark .glass-panel {
-  background: hsl(0 0% 7%);        /* solid #111 — no blur, no frost */
-  backdrop-filter: none;
-  border: 1px solid hsl(0 0% 14%); /* #222 */
+  background: hsl(0 0% 6%);
+  border: 1px solid hsl(0 0% 14%);
   box-shadow: none;
-  border-radius: 4px;
 }
 
 @media (prefers-color-scheme: dark) {
   .glass-panel {
-    background: hsl(0 0% 7%);
-    backdrop-filter: none;
+    background: hsl(0 0% 6%);
     border: 1px solid hsl(0 0% 14%);
     box-shadow: none;
-    border-radius: 4px;
   }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   DARK MODE — CARD BORDERS
-   All cards get a crisp 1px #222 border in dark mode
+   SUBVISUAL BLUE GLOW — used on primary focus rings and active states
+───────────────────────────────────────────────────────────────────────────── */
+.dark *:focus-visible,
+:root.dark *:focus-visible {
+  outline: 1px solid hsl(224 98% 50%);
+  outline-offset: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  *:focus-visible {
+    outline: 1px solid hsl(224 98% 50%);
+    outline-offset: 2px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   REMOVE ALL SHADOWS IN DARK MODE (flat engineering aesthetic)
 ───────────────────────────────────────────────────────────────────────────── */
 .dark [class*="shadow"],
 :root.dark [class*="shadow"] {
-  box-shadow: none;
+  box-shadow: none !important;
 }
 
 @media (prefers-color-scheme: dark) {
   [class*="shadow"] {
-    box-shadow: none;
+    box-shadow: none !important;
   }
 }

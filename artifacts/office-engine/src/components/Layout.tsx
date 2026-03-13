@@ -134,14 +134,14 @@ export function Layout({ children }: { children: ReactNode }) {
             </Link>
 
             {/* Desktop Nav */}
-            <nav className="hidden md:flex items-center gap-0.5">
+            <nav className="hidden md:flex items-center">
               {currentNav.map((item) => {
                 const isActive = location.startsWith(item.href);
                 return (
                   <Link key={item.name} href={item.href} className={cn(
-                    "px-3 py-1.5 text-xs font-medium tracking-wide uppercase transition-all flex items-center gap-1.5 relative border-b-2",
+                    "px-3 py-1.5 text-xs font-medium tracking-widest uppercase transition-all flex items-center gap-1.5 border-b-2 font-sans",
                     isActive
-                      ? "text-foreground border-foreground"
+                      ? "text-primary border-primary"
                       : "text-muted-foreground border-transparent hover:text-foreground hover:border-border"
                   )}>
                     <item.icon className="w-3.5 h-3.5" />

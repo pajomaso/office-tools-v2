@@ -16,6 +16,15 @@ A centralized office management application with Staff and Admin interfaces. Cov
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **UI**: shadcn/ui + Tailwind CSS v4
+- **Fonts**: Inter (body) + DM Serif Display (headings — sub for Subvisual's proprietary Acta)
+
+## Brand System (Subvisual)
+- **Primary**: `#045CFC` — electric blue (`hsl(224 98% 50%)`)
+- **Accent**: `#82AEFE` — light periwinkle blue (`hsl(217 99% 75%)`)
+- **Radius**: `0px` everywhere — fully sharp corners, no rounding
+- **Dark bg**: `#0a0a0a` · **Cards**: `#121212` · **Borders**: `#222222`
+- **Dark mode detection**: inline script in `index.html` adds `.dark` to `<html>` on OS preference; CSS variables also respond to `@media (prefers-color-scheme: dark)` as fallback
+
 - **Routing**: Wouter
 - **State/Data**: TanStack React Query + generated hooks
 

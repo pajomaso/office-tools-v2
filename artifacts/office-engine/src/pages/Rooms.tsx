@@ -16,10 +16,40 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarWidget } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatTime, cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 const HOURS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
+const DAY_START = "08:00";
+const DAY_END = "18:00";
+
+// All half-hour slots from 08:00 to 18:00
+const ALL_SLOTS: string[] = [];
+for (let h = 8; h <= 18; h++) {
+  ALL_SLOTS.push(`${String(h).padStart(2, '0')}:00`);
+  if (h < 18) ALL_SLOTS.push(`${String(h).padStart(2, '0')}:30`);
+}
+
+const DURATION_OPTIONS = [
+  { label: "30 minutes", minutes: 30 },
+  { label: "1 hour",     minutes: 60 },
+  { label: "1.5 hours",  minutes: 90 },
+  { label: "2 hours",    minutes: 120 },
+  { label: "2.5 hours",  minutes: 150 },
+  { label: "3 hours",    minutes: 180 },
+  { label: "4 hours",    minutes: 240 },
+  { label: "Half day",   minutes: 300 },
+  { label: "All day",    minutes: -1 }, // special
+];
+
+function addMinutesToTime(time: string, minutes: number): string {
+  const [h, m] = time.split(':').map(Number);
+  const total = h * 60 + m + minutes;
+  const endH = Math.floor(total / 60);
+  const endM = total % 60;
+  return `${String(Math.min(endH, 18)).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+}
 
 export default function Rooms() {
   const { userName } = useAppState();
@@ -72,21 +102,32 @@ export default function Rooms() {
 
   const [bookingModal, setBookingModal] = useState<{room: any, date: Date, time: string} | null>(null);
   const [title, setTitle] = useState("");
+  const [startTime, setStartTime] = useState("08:00");
+  const [durationMinutes, setDurationMinutes] = useState(60);
+
+  const openBookingModal = (room: any, date: Date, time: string) => {
+    setBookingModal({ room, date, time });
+    setStartTime(time);
+    setDurationMinutes(60);
+    setTitle("");
+  };
+
+  const computedEndTime = durationMinutes === -1 ? DAY_END : addMinutesToTime(startTime, durationMinutes);
+
+  // Valid start slots: anything before DAY_END, with at least 30 min remaining
+  const validStartSlots = ALL_SLOTS.filter(s => s < DAY_END);
 
   const handleBook = () => {
     if (!bookingModal || !title.trim()) return;
-    const [h, m] = bookingModal.time.split(':');
-    const endH = (parseInt(h) + 1).toString().padStart(2, '0');
-    const endTime = `${endH}:${m}`;
-
+    const endTime = durationMinutes === -1 ? DAY_END : addMinutesToTime(startTime, durationMinutes);
     createBooking.mutate({
       data: {
         roomId: bookingModal.room.id,
         userName,
         title: title.trim(),
         date: format(bookingModal.date, 'yyyy-MM-dd'),
-        startTime: bookingModal.time,
-        endTime: endTime
+        startTime: durationMinutes === -1 ? DAY_START : startTime,
+        endTime,
       }
     });
   };
@@ -260,7 +301,7 @@ export default function Rooms() {
                           ) : (
                             <button
                               disabled={isPast}
-                              onClick={() => setBookingModal({ room: activeRoom, date: day, time: hour })}
+                              onClick={() => openBookingModal(activeRoom, day, hour)}
                               className={cn(
                                 "absolute inset-0 w-full rounded-xl border border-dashed border-border/50 flex items-center justify-center transition-all",
                                 isPast 
@@ -288,7 +329,7 @@ export default function Rooms() {
           <DialogHeader>
             <DialogTitle className="text-xl">Book {bookingModal?.room.name}</DialogTitle>
             <DialogDescription>
-              {bookingModal && format(bookingModal.date, 'EEEE, MMMM d, yyyy')} at {bookingModal && formatTime(bookingModal.time)}
+              {bookingModal && format(bookingModal.date, 'EEEE, MMMM d, yyyy')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -302,6 +343,56 @@ export default function Rooms() {
                 className="h-12 rounded-xl"
               />
             </div>
+
+            {/* Time row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Start time</label>
+                <Select
+                  value={durationMinutes === -1 ? DAY_START : startTime}
+                  onValueChange={(v) => setStartTime(v)}
+                  disabled={durationMinutes === -1}
+                >
+                  <SelectTrigger className="h-12 rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {validStartSlots.map(slot => (
+                      <SelectItem key={slot} value={slot}>
+                        {formatTime(slot)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Duration</label>
+                <Select
+                  value={String(durationMinutes)}
+                  onValueChange={(v) => setDurationMinutes(Number(v))}
+                >
+                  <SelectTrigger className="h-12 rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DURATION_OPTIONS.map(opt => (
+                      <SelectItem key={opt.minutes} value={String(opt.minutes)}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Summary pill */}
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/10 text-primary text-sm font-medium">
+              <Clock className="h-4 w-4 shrink-0" />
+              {durationMinutes === -1
+                ? `All day · ${formatTime(DAY_START)} – ${formatTime(DAY_END)}`
+                : `${formatTime(durationMinutes === -1 ? DAY_START : startTime)} – ${formatTime(computedEndTime)}`}
+            </div>
+
             <div className="space-y-2">
               <label className="text-sm font-medium">Booked By</label>
               <Input value={userName} disabled className="h-12 rounded-xl bg-muted" />

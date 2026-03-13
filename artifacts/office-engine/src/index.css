@@ -29,7 +29,9 @@
   --radius-2xl: 1.5rem;
 }
 
-/* ── Light mode ─────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────────────────
+   LIGHT MODE — clean and professional
+───────────────────────────────────────────────────────────────────────────── */
 :root {
   --background: 210 40% 98%;
   --foreground: 222 47% 11%;
@@ -40,8 +42,8 @@
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
 
-  --primary: 239 84% 67%;
-  --primary-foreground: 210 40% 98%;
+  --primary: 239 84% 60%;
+  --primary-foreground: 0 0% 100%;
 
   --secondary: 210 40% 96%;
   --secondary-foreground: 222 47% 11%;
@@ -53,80 +55,85 @@
   --accent-foreground: 239 84% 40%;
 
   --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive-foreground: 0 0% 100%;
 
   --border: 214 32% 87%;
   --input: 214 32% 87%;
-  --ring: 239 84% 67%;
+  --ring: 239 84% 60%;
 
   --radius: 0.75rem;
 }
 
-/* ── Dark mode variables (applied via both class and media query) ────────── */
+/* ─────────────────────────────────────────────────────────────────────────────
+   DARK MODE — "Mission Control" / Brutalist design system
+   #0a0a0a background · #ffffff text · #222 borders · max 4px radius
+───────────────────────────────────────────────────────────────────────────── */
 :root.dark,
 .dark {
-  --background: 222 47% 9%;
-  --foreground: 210 40% 96%;
+  --background: 0 0% 4%;          /* #0a0a0a */
+  --foreground: 0 0% 98%;         /* #fafafa — near-white */
 
-  --card: 222 40% 14%;
-  --card-foreground: 210 40% 96%;
+  --card: 0 0% 7%;                /* #121212 — lifted card */
+  --card-foreground: 0 0% 98%;
 
-  --popover: 222 40% 14%;
-  --popover-foreground: 210 40% 96%;
+  --popover: 0 0% 7%;
+  --popover-foreground: 0 0% 98%;
 
-  --primary: 239 84% 70%;
-  --primary-foreground: 222 47% 9%;
+  --primary: 0 0% 96%;            /* White as primary — high contrast */
+  --primary-foreground: 0 0% 4%;  /* Dark text on white button */
 
-  --secondary: 217 32% 20%;
-  --secondary-foreground: 210 40% 90%;
+  --secondary: 0 0% 12%;          /* #1e1e1e */
+  --secondary-foreground: 0 0% 80%;
 
-  --muted: 217 32% 20%;
-  --muted-foreground: 215 20% 72%;
+  --muted: 0 0% 12%;
+  --muted-foreground: 0 0% 55%;   /* Readable mid-grey */
 
-  --accent: 239 40% 22%;
-  --accent-foreground: 239 84% 85%;
+  --accent: 0 0% 14%;
+  --accent-foreground: 0 0% 90%;
 
-  --destructive: 0 72% 51%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive: 0 84% 55%;       /* Sharp red — status only */
+  --destructive-foreground: 0 0% 100%;
 
-  --border: 217 28% 26%;
-  --input: 217 30% 20%;
-  --ring: 239 84% 70%;
+  --border: 0 0% 14%;             /* #222 */
+  --input: 0 0% 10%;              /* Slightly lighter than bg */
+  --ring: 0 0% 60%;
 }
 
-/* Also respond to system preference directly (covers no-ThemeProvider fallback) */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: 222 47% 9%;
-    --foreground: 210 40% 96%;
+    --background: 0 0% 4%;
+    --foreground: 0 0% 98%;
 
-    --card: 222 40% 14%;
-    --card-foreground: 210 40% 96%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 222 40% 14%;
-    --popover-foreground: 210 40% 96%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 239 84% 70%;
-    --primary-foreground: 222 47% 9%;
+    --primary: 0 0% 96%;
+    --primary-foreground: 0 0% 4%;
 
-    --secondary: 217 32% 20%;
-    --secondary-foreground: 210 40% 90%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 80%;
 
-    --muted: 217 32% 20%;
-    --muted-foreground: 215 20% 72%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 55%;
 
-    --accent: 239 40% 22%;
-    --accent-foreground: 239 84% 85%;
+    --accent: 0 0% 14%;
+    --accent-foreground: 0 0% 90%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217 28% 26%;
-    --input: 217 30% 20%;
-    --ring: 239 84% 70%;
+    --border: 0 0% 14%;
+    --input: 0 0% 10%;
+    --ring: 0 0% 60%;
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   BASE
+───────────────────────────────────────────────────────────────────────────── */
 @layer base {
   * {
     @apply border-border;
@@ -135,24 +142,20 @@
   body {
     @apply bg-background text-foreground antialiased font-sans;
     background-image:
-      radial-gradient(circle at top right, hsl(239 84% 96% / 0.5), transparent 40%),
-      radial-gradient(circle at bottom left, hsl(210 40% 92% / 0.5), transparent 40%);
+      radial-gradient(circle at top right, hsl(239 84% 96% / 0.4), transparent 40%),
+      radial-gradient(circle at bottom left, hsl(210 40% 92% / 0.4), transparent 40%);
     background-attachment: fixed;
   }
 
-  /* Dark mode gradient override — deep indigo tones */
+  /* Dark mode: flat background, no gradient noise */
   .dark body,
   :root.dark body {
-    background-image:
-      radial-gradient(circle at top right, hsl(239 84% 20% / 0.35), transparent 40%),
-      radial-gradient(circle at bottom left, hsl(222 60% 14% / 0.5), transparent 40%);
+    background-image: none;
   }
 
   @media (prefers-color-scheme: dark) {
     body {
-      background-image:
-        radial-gradient(circle at top right, hsl(239 84% 20% / 0.35), transparent 40%),
-        radial-gradient(circle at bottom left, hsl(222 60% 14% / 0.5), transparent 40%);
+      background-image: none;
     }
   }
 
@@ -162,18 +165,82 @@
   }
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar { width: 8px; height: 8px; }
+/* ─────────────────────────────────────────────────────────────────────────────
+   DARK MODE — SHARP EDGES OVERRIDE
+   Clamp all soft radii to 4px max so the UI feels like an engineering tool,
+   not a consumer app. rounded-full stays round (used for avatars/pills).
+───────────────────────────────────────────────────────────────────────────── */
+.dark .rounded-sm,
+.dark .rounded,
+.dark .rounded-md,
+.dark .rounded-lg,
+.dark .rounded-xl,
+.dark .rounded-2xl,
+.dark .rounded-3xl {
+  border-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .rounded-sm,
+  .rounded,
+  .rounded-md,
+  .rounded-lg,
+  .rounded-xl,
+  .rounded-2xl,
+  .rounded-3xl {
+    border-radius: 4px;
+  }
+}
+
+/* Override shadcn/ui Dialog itself */
+.dark [role="dialog"] > div,
+.dark [data-slot="dialog-content"] {
+  border-radius: 4px !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  [role="dialog"] > div,
+  [data-slot="dialog-content"] {
+    border-radius: 4px !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   DARK MODE — TYPOGRAPHY UPGRADES
+   Tighter tracking on headings, slightly larger base for authority.
+───────────────────────────────────────────────────────────────────────────── */
+.dark h1, :root.dark h1,
+@media (prefers-color-scheme: dark) { h1 } {
+  letter-spacing: -0.04em;
+}
+
+.dark h2, .dark h3 {
+  letter-spacing: -0.02em;
+}
+
+@media (prefers-color-scheme: dark) {
+  h2, h3 {
+    letter-spacing: -0.02em;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   SCROLLBAR
+───────────────────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: hsl(var(--border));
-  border-radius: 4px;
+  border-radius: 0;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground));
 }
 
-/* Glass panel */
+/* ─────────────────────────────────────────────────────────────────────────────
+   GLASS PANEL
+   Light: frosted white · Dark: flat solid surface with crisp 1px border
+───────────────────────────────────────────────────────────────────────────── */
 .glass-panel {
   background: hsl(0 0% 100% / 0.75);
   backdrop-filter: blur(20px);
@@ -183,15 +250,34 @@
 
 .dark .glass-panel,
 :root.dark .glass-panel {
-  background: hsl(222 40% 16% / 0.9);
-  border: 1px solid hsl(217 28% 30% / 0.5);
-  box-shadow: 0 8px 32px hsl(0 0% 0% / 0.4);
+  background: hsl(0 0% 7%);        /* solid #111 — no blur, no frost */
+  backdrop-filter: none;
+  border: 1px solid hsl(0 0% 14%); /* #222 */
+  box-shadow: none;
+  border-radius: 4px;
 }
 
 @media (prefers-color-scheme: dark) {
   .glass-panel {
-    background: hsl(222 40% 16% / 0.9);
-    border: 1px solid hsl(217 28% 30% / 0.5);
-    box-shadow: 0 8px 32px hsl(0 0% 0% / 0.4);
+    background: hsl(0 0% 7%);
+    backdrop-filter: none;
+    border: 1px solid hsl(0 0% 14%);
+    box-shadow: none;
+    border-radius: 4px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   DARK MODE — CARD BORDERS
+   All cards get a crisp 1px #222 border in dark mode
+───────────────────────────────────────────────────────────────────────────── */
+.dark [class*="shadow"],
+:root.dark [class*="shadow"] {
+  box-shadow: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  [class*="shadow"] {
+    box-shadow: none;
   }
 }

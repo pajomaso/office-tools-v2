@@ -1,12 +1,16 @@
 import { useState } from 'react';
 
+// Versioned key — old sessions (pre-password) stored under 'officeEngineAdmin'
+// Using V2 forces everyone to re-authenticate
+const ADMIN_KEY = 'officeEngineAdminV2';
+
 export function useAppState() {
   const [userName, setUserName] = useState(() => {
     return localStorage.getItem('officeEngineUser') || '';
   });
-  
+
   const [isAdmin, setIsAdmin] = useState(() => {
-    return localStorage.getItem('officeEngineAdmin') === 'true';
+    return localStorage.getItem(ADMIN_KEY) === 'true';
   });
 
   const saveUserName = (name: string) => {
@@ -22,7 +26,7 @@ export function useAppState() {
         body: JSON.stringify({ password }),
       });
       if (res.ok) {
-        localStorage.setItem('officeEngineAdmin', 'true');
+        localStorage.setItem(ADMIN_KEY, 'true');
         setIsAdmin(true);
         return true;
       }
@@ -33,14 +37,12 @@ export function useAppState() {
   };
 
   const exitAdmin = () => {
-    localStorage.setItem('officeEngineAdmin', 'false');
+    localStorage.setItem(ADMIN_KEY, 'false');
     setIsAdmin(false);
   };
 
   const toggleAdmin = () => {
-    if (isAdmin) {
-      exitAdmin();
-    }
+    if (isAdmin) exitAdmin();
   };
 
   return {

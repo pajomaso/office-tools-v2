@@ -4,7 +4,7 @@ import { useAppState } from "@/hooks/use-app-state";
 import { IdentityModal } from "./IdentityModal";
 import { 
   Building2, Calendar, Coffee, Wrench, Shield, Lightbulb,
-  Settings, Users, Clock, LogOut, ChevronDown, Lock, Eye, EyeOff
+  Settings, Users, Clock, LogOut, ChevronDown, Lock, Eye, EyeOff, LayoutDashboard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -38,12 +38,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
   const isSetup = !!userName;
 
-  const staffNav = [
-    { name: "Rooms", href: "/rooms", icon: Calendar },
-    { name: "Inventory", href: "/inventory", icon: Coffee },
-    { name: "Maintenance", href: "/maintenance", icon: Wrench },
-    { name: "Suggestions", href: "/suggestions", icon: Lightbulb },
-  ];
+  const staffNav: any[] = [];
 
   const adminNav = [
     { name: "Manage Rooms", href: "/admin/rooms", icon: Calendar },
@@ -132,14 +127,14 @@ export function Layout({ children }: { children: ReactNode }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <div className="flex items-center gap-2">
+            <Link href={isAdmin ? "/admin/rooms" : "/dashboard"} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
               <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center shadow-sm">
                 <Building2 className="w-5 h-5 text-white" />
               </div>
               <span className="font-display font-bold text-xl tracking-tight text-foreground hidden sm:block">
                 The Office Engine
               </span>
-            </div>
+            </Link>
 
             {/* Desktop Nav */}
             <nav className="hidden md:flex space-x-1">

@@ -6,6 +6,7 @@ import { Layout } from "@/components/Layout";
 import NotFound from "@/pages/not-found";
 
 // Staff Pages
+import StaffDashboard from "@/pages/StaffDashboard";
 import Rooms from "@/pages/Rooms";
 import Inventory from "@/pages/Inventory";
 import Maintenance from "@/pages/Maintenance";
@@ -42,12 +43,15 @@ function Router() {
   return (
     <Layout>
       <Switch>
-        {/* Redirect root to appropriate dashboard */}
+        {/* Redirect root */}
         <Route path="/">
-          {() => <Redirect to={isAdmin ? "/admin/rooms" : "/rooms"} />}
+          {() => <Redirect to={isAdmin ? "/admin/rooms" : "/dashboard"} />}
         </Route>
 
-        {/* Staff Routes */}
+        {/* Staff: single-page dashboard */}
+        <Route path="/dashboard" component={StaffDashboard} />
+
+        {/* Legacy individual staff routes still accessible */}
         <Route path="/rooms" component={Rooms} />
         <Route path="/inventory" component={Inventory} />
         <Route path="/maintenance" component={Maintenance} />

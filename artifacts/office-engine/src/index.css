@@ -29,78 +29,131 @@
   --radius-2xl: 1.5rem;
 }
 
+/* ── Light mode ─────────────────────────────────────────────────────────── */
 :root {
-  /* Slate & Indigo Professional Theme */
-  --background: 210 40% 98%;      /* Very light slate */
-  --foreground: 222 47% 11%;      /* Very dark slate */
-  
-  --card: 0 0% 100%;              /* White */
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+
+  --card: 0 0% 100%;
   --card-foreground: 222 47% 11%;
-  
+
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
-  
-  --primary: 239 84% 67%;         /* Vibrant Indigo */
+
+  --primary: 239 84% 67%;
   --primary-foreground: 210 40% 98%;
-  
+
   --secondary: 210 40% 96%;
   --secondary-foreground: 222 47% 11%;
-  
+
   --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 47%;
-  
-  --accent: 239 84% 95%;          /* Light Indigo */
+  --muted-foreground: 215 16% 40%;
+
+  --accent: 239 84% 95%;
   --accent-foreground: 239 84% 40%;
-  
-  --destructive: 0 84% 60%;       /* Red */
+
+  --destructive: 0 84% 60%;
   --destructive-foreground: 210 40% 98%;
-  
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
+
+  --border: 214 32% 87%;
+  --input: 214 32% 87%;
   --ring: 239 84% 67%;
-  
+
   --radius: 0.75rem;
 }
 
+/* ── Dark mode variables (applied via both class and media query) ────────── */
+:root.dark,
 .dark {
-  --background: 222 47% 11%;
-  --foreground: 210 40% 98%;
-  
-  --card: 222 47% 15%;
-  --card-foreground: 210 40% 98%;
-  
-  --popover: 222 47% 15%;
-  --popover-foreground: 210 40% 98%;
-  
-  --primary: 239 84% 67%;
-  --primary-foreground: 210 40% 98%;
-  
-  --secondary: 217 32% 17%;
-  --secondary-foreground: 210 40% 98%;
-  
-  --muted: 217 32% 17%;
-  --muted-foreground: 215 20.2% 65.1%;
-  
-  --accent: 217 32% 17%;
-  --accent-foreground: 210 40% 98%;
-  
-  --destructive: 0 62.8% 30.6%;
+  --background: 222 47% 9%;
+  --foreground: 210 40% 96%;
+
+  --card: 222 40% 14%;
+  --card-foreground: 210 40% 96%;
+
+  --popover: 222 40% 14%;
+  --popover-foreground: 210 40% 96%;
+
+  --primary: 239 84% 70%;
+  --primary-foreground: 222 47% 9%;
+
+  --secondary: 217 32% 20%;
+  --secondary-foreground: 210 40% 90%;
+
+  --muted: 217 32% 20%;
+  --muted-foreground: 215 20% 72%;
+
+  --accent: 239 40% 22%;
+  --accent-foreground: 239 84% 85%;
+
+  --destructive: 0 72% 51%;
   --destructive-foreground: 210 40% 98%;
-  
-  --border: 217 32% 17%;
-  --input: 217 32% 17%;
-  --ring: 224 76.3% 48%;
+
+  --border: 217 28% 26%;
+  --input: 217 30% 20%;
+  --ring: 239 84% 70%;
+}
+
+/* Also respond to system preference directly (covers no-ThemeProvider fallback) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: 222 47% 9%;
+    --foreground: 210 40% 96%;
+
+    --card: 222 40% 14%;
+    --card-foreground: 210 40% 96%;
+
+    --popover: 222 40% 14%;
+    --popover-foreground: 210 40% 96%;
+
+    --primary: 239 84% 70%;
+    --primary-foreground: 222 47% 9%;
+
+    --secondary: 217 32% 20%;
+    --secondary-foreground: 210 40% 90%;
+
+    --muted: 217 32% 20%;
+    --muted-foreground: 215 20% 72%;
+
+    --accent: 239 40% 22%;
+    --accent-foreground: 239 84% 85%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 28% 26%;
+    --input: 217 30% 20%;
+    --ring: 239 84% 70%;
+  }
 }
 
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground antialiased font-sans;
-    background-image: radial-gradient(circle at top right, hsl(239 84% 96% / 0.5), transparent 40%),
-                      radial-gradient(circle at bottom left, hsl(210 40% 92% / 0.5), transparent 40%);
+    background-image:
+      radial-gradient(circle at top right, hsl(239 84% 96% / 0.5), transparent 40%),
+      radial-gradient(circle at bottom left, hsl(210 40% 92% / 0.5), transparent 40%);
     background-attachment: fixed;
+  }
+
+  /* Dark mode gradient override — deep indigo tones */
+  .dark body,
+  :root.dark body {
+    background-image:
+      radial-gradient(circle at top right, hsl(239 84% 20% / 0.35), transparent 40%),
+      radial-gradient(circle at bottom left, hsl(222 60% 14% / 0.5), transparent 40%);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    body {
+      background-image:
+        radial-gradient(circle at top right, hsl(239 84% 20% / 0.35), transparent 40%),
+        radial-gradient(circle at bottom left, hsl(222 60% 14% / 0.5), transparent 40%);
+    }
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -109,14 +162,9 @@
   }
 }
 
-/* Custom Scrollbar for sleekness */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: hsl(var(--border));
   border-radius: 4px;
@@ -125,7 +173,25 @@
   background: hsl(var(--muted-foreground));
 }
 
-/* Glass panel utility */
+/* Glass panel */
 .glass-panel {
-  @apply bg-white/70 dark:bg-black/50 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl;
+  background: hsl(0 0% 100% / 0.75);
+  backdrop-filter: blur(20px);
+  border: 1px solid hsl(0 0% 100% / 0.3);
+  box-shadow: 0 8px 32px hsl(0 0% 0% / 0.12);
+}
+
+.dark .glass-panel,
+:root.dark .glass-panel {
+  background: hsl(222 40% 16% / 0.9);
+  border: 1px solid hsl(217 28% 30% / 0.5);
+  box-shadow: 0 8px 32px hsl(0 0% 0% / 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  .glass-panel {
+    background: hsl(222 40% 16% / 0.9);
+    border: 1px solid hsl(217 28% 30% / 0.5);
+    box-shadow: 0 8px 32px hsl(0 0% 0% / 0.4);
+  }
 }

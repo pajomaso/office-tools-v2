@@ -1,0 +1,52 @@
+To get an AI (like Claude, GPT-4, or a frontend developer tool) to actually build or design this, you need to combine your functional requirements (the rooms, pantry, and repairs) with the Subvisual visual style.
+
+Here is the "Master Prompt" you can copy and paste:
+
+Prompt for AI Developer/Designer
+Role: You are a Senior Full-Stack Developer and UI/UX Designer specializing in high-end, minimalist SaaS applications.
+
+Objective: Design and build the frontend for an internal Office Management App called "The Office Engine."
+
+Visual Identity (The "Subvisual" Aesthetic):
+I want the UI to follow a Premium, Tech-Forward, Minimalist Dark Mode aesthetic. Use the following design system:
+
+Layout: A Bento-Grid structure (modular cards) inspired by Swiss Design. High use of negative space.
+
+Colors: Deep charcoal background (#0a0a0a), pure white text for high contrast, and subtle muted grey borders (#222). No vibrant colors except for status indicators (e.g., "Urgent" in a sharp red).
+
+Typography: Bold, clean Sans-Serif (Inter or Satoshi). Use oversized H1 headers (6xl/7xl) with tight letter spacing for section titles.
+
+Components: Sharp edges (0px to 4px border-radius). Use 1px borders to define the grid modules. The app should feel like a "Mission Control" dashboard.
+
+The Single-Page Dashboard Modules:
+
+1. Room Booking ("The Peacekeeper"):
+
+A modular calendar showing three rooms (customizable names).
+
+Each room card should feature a high-quality monochrome photo as a background or thumbnail.
+
+Users can reserve time slots. Ensure a clean "Reserved" vs "Available" state.
+
+2. Office Pantry ("The Inventory Manager"):
+
+A "Wishlist" module where users can submit items.
+
+Include a "Upvote" counter for each requested item (e.g., "Oat Milk +12").
+
+Use a clean list or small grid-cards within this module.
+
+3. Maintenance & Repairs ("The Fix-It Hub"):
+
+A ticketing system with three priority views: Reported, In Progress, and Fixed.
+
+Photo Reporting: A button to trigger a file upload/camera.
+
+Priority Toggles: A clear visual distinction between "Urgent" (Critical) and "General" (Standard).
+
+Admin Controls (Hidden/Backend):
+
+Provide a way for an Admin to edit room names/photos and access a private "Vendor Contact List" and a "Scheduled Maintenance" log.
+
+Technical Stack Preference:
+Please provide the code using React, Tailwind CSS, and Lucide Icons. Ensure the layout is responsive but prioritizes a desktop "Control Center" feel.

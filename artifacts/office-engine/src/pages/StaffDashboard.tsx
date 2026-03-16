@@ -13,7 +13,7 @@ import {
   Calendar, Coffee, Wrench, Lightbulb, BookOpen,
   ChevronLeft, ChevronRight, ChevronDown, Clock, Trash2,
   Send, Plus, CheckCircle2, AlertCircle, Phone, Video,
-  Thermometer, Sparkles, Star, ExternalLink
+  Thermometer, Sparkles, Star, ExternalLink, List
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -190,6 +190,30 @@ export default function StaffDashboard() {
     return booking.startTime >= time || !timesOverlap(booking.startTime, booking.endTime, prev, prevEnd);
   };
 
+  // ── View Bookings panel ────────────────────────────────────────────────────
+  const [showBookingsPanel, setShowBookingsPanel] = useState(false);
+  const [bookingsList, setBookingsList] = useState<any[]>([]);
+  const [bookingsListLoading, setBookingsListLoading] = useState(false);
+
+  const fetchBookingsList = async () => {
+    setBookingsListLoading(true);
+    try {
+      const url = isAdmin ? "/api/bookings?past=true" : "/api/bookings?past=false";
+      const data = await fetch(url).then(r => r.json());
+      const sorted = data.sort((a: any, b: any) =>
+        isAdmin
+          ? b.date.localeCompare(a.date) || a.startTime.localeCompare(b.startTime)
+          : a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime)
+      );
+      setBookingsList(isAdmin ? sorted : sorted.filter((b: any) => b.userName === userName));
+    } catch { /* silent */ }
+    finally { setBookingsListLoading(false); }
+  };
+
+  useEffect(() => {
+    if (showBookingsPanel) fetchBookingsList();
+  }, [showBookingsPanel]);
+
   // ── Inventory ──────────────────────────────────────────────────────────────
   const [invItem, setInvItem] = useState("");
   const [invQty, setInvQty] = useState("1");
@@ -291,13 +315,23 @@ export default function StaffDashboard() {
 
       {/* ── ROOMS ────────────────────────────────────────────────────────── */}
       <section className="space-y-6">
-        <SectionHeader
-          id="rooms"
-          icon={Calendar}
-          title="Room Booking"
-          subtitle="Reserve a space for your next meeting."
-          color="bg-indigo-100 text-indigo-600"
-        />
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <SectionHeader
+            id="rooms"
+            icon={Calendar}
+            title="Room Booking"
+            subtitle="Reserve a space for your next meeting."
+            color="bg-indigo-100 text-indigo-600"
+          />
+          <Button
+            variant="outline"
+            onClick={() => setShowBookingsPanel(true)}
+            className="shrink-0 gap-2 rounded-xl h-10 px-4 text-sm font-medium"
+          >
+            <List className="w-4 h-4" />
+            {isAdmin ? "Booking History" : "View My Bookings"}
+          </Button>
+        </div>
 
         {/* Room selector */}
         <div className="flex gap-3 flex-wrap">
@@ -735,6 +769,63 @@ export default function StaffDashboard() {
           </InfoCard>
         </div>
       </section>
+
+      {/* ── VIEW BOOKINGS PANEL ──────────────────────────────────────────── */}
+      <Dialog open={showBookingsPanel} onOpenChange={setShowBookingsPanel}>
+        <DialogContent className="sm:max-w-lg rounded-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <List className="w-5 h-5 text-primary" />
+              {isAdmin ? "Past Bookings" : "My Upcoming Bookings"}
+            </DialogTitle>
+            <DialogDescription>
+              {isAdmin
+                ? "All past room bookings across every room."
+                : "Your future room reservations."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto min-h-0 space-y-2 pr-1">
+            {bookingsListLoading ? (
+              <p className="text-sm text-muted-foreground text-center py-8 animate-pulse">Loading...</p>
+            ) : bookingsList.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                {isAdmin ? "No past bookings found." : "No upcoming bookings for you."}
+              </p>
+            ) : (
+              bookingsList.map(b => (
+                <div
+                  key={b.id}
+                  className="flex items-center justify-between gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                >
+                  <div className="min-w-0 flex-1 space-y-0.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold text-foreground">{b.roomName}</span>
+                      <span className="text-xs text-muted-foreground font-mono">{b.date}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Clock className="w-3 h-3 shrink-0" />
+                      {formatTime(b.startTime)} – {formatTime(b.endTime)}
+                      {isAdmin && <span className="ml-1 text-foreground/70">· {b.userName}</span>}
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8"
+                    onClick={async () => {
+                      await fetch(`/api/bookings/${b.id}`, { method: "DELETE" });
+                      queryClient.invalidateQueries({ queryKey: getGetBookingsQueryKey() });
+                      setBookingsList(prev => prev.filter(x => x.id !== b.id));
+                    }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── BOOKING DIALOG ───────────────────────────────────────────────── */}
       <Dialog open={!!bookingModal} onOpenChange={open => !open && setBookingModal(null)}>

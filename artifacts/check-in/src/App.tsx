@@ -1,28 +1,20 @@
 import { useState, useEffect, useRef } from "react";
-import { Clock, Sun, Calendar, Monitor, ArrowRight, Check, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 
 type Step = 1 | 2 | "done";
-type DurationOption = "popping-in" | "half-day" | "all-day" | "remote" | null;
-
-const durationOptions = [
-  { id: "popping-in", label: "Just popping in", sub: "Under 2 hours", icon: Clock },
-  { id: "half-day", label: "Half day", sub: "Morning or afternoon", icon: Sun },
-  { id: "all-day", label: "All day", sub: "9am – 6pm", icon: Calendar },
-  { id: "remote", label: "Remote today", sub: "Just need to book a room", icon: Monitor },
-] as const;
 
 function CheckIn() {
   const [step, setStep] = useState<Step>(1);
   const [name, setName] = useState("");
-  const [selectedDuration, setSelectedDuration] = useState<DurationOption>(null);
+  const [company, setCompany] = useState("");
   const [animating, setAnimating] = useState(false);
   const [dir, setDir] = useState<"fwd" | "bwd">("fwd");
   const inputRef = useRef<HTMLInputElement>(null);
+  const companyRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (step === 1) {
-      setTimeout(() => inputRef.current?.focus(), 320);
-    }
+    if (step === 1) setTimeout(() => inputRef.current?.focus(), 320);
+    if (step === 2) setTimeout(() => companyRef.current?.focus(), 320);
   }, [step]);
 
   const goNext = () => {
@@ -39,7 +31,7 @@ function CheckIn() {
   };
 
   const handleSubmit = () => {
-    if (!name.trim()) return;
+    if (!name.trim() || !company.trim()) return;
     setDir("fwd");
     setAnimating(true);
     setTimeout(() => { setStep("done"); setAnimating(false); }, 280);
@@ -51,7 +43,7 @@ function CheckIn() {
     setTimeout(() => {
       setStep(1);
       setName("");
-      setSelectedDuration(null);
+      setCompany("");
       setAnimating(false);
     }, 280);
   };
@@ -72,7 +64,37 @@ function CheckIn() {
     };
   };
 
-  const durationLabel = durationOptions.find(o => o.id === selectedDuration)?.label;
+  const inputStyle = (value: string): React.CSSProperties => ({
+    width: "100%",
+    background: "transparent",
+    border: "none",
+    borderBottom: "2px solid #045CFC",
+    fontSize: 28,
+    fontFamily: '"DM Serif Display", serif',
+    fontWeight: 400,
+    color: "#045CFC",
+    padding: "8px 0 12px",
+    outline: "none",
+    caretColor: "#045CFC",
+    boxSizing: "border-box",
+  });
+
+  const continueBtn = (active: boolean): React.CSSProperties => ({
+    width: "100%",
+    background: active ? "#82AEFE" : "#E5ECFF",
+    color: active ? "#000000" : "#9EB8FE",
+    border: "none",
+    padding: "16px 24px",
+    fontSize: 15,
+    fontWeight: 600,
+    letterSpacing: "0.01em",
+    cursor: active ? "pointer" : "not-allowed",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    transition: "background 0.2s ease, color 0.2s ease",
+    fontFamily: "Inter, sans-serif",
+  });
 
   return (
     <div
@@ -82,7 +104,7 @@ function CheckIn() {
       <div
         className="w-full max-w-[520px] mx-4 flex flex-col overflow-hidden relative"
         style={{
-          minHeight: 640,
+          minHeight: 580,
           background: "linear-gradient(160deg, #f7f9ff 0%, #eef3ff 100%)",
           boxShadow: "0 8px 64px rgba(4,92,252,0.12), 0 1px 4px rgba(4,92,252,0.06)",
         }}
@@ -104,10 +126,7 @@ function CheckIn() {
         />
 
         {/* Header */}
-        <div
-          className="relative z-10 flex items-center justify-between"
-          style={{ padding: "28px 40px 0" }}
-        >
+        <div className="relative z-10 flex items-center justify-between" style={{ padding: "28px 40px 0" }}>
           <span
             style={{
               fontSize: 10,
@@ -139,10 +158,7 @@ function CheckIn() {
         </div>
 
         {/* Content */}
-        <div
-          className="relative z-10 flex-1 flex flex-col"
-          style={{ padding: "32px 40px 28px", position: "relative" }}
-        >
+        <div className="relative z-10 flex-1 flex flex-col" style={{ padding: "32px 40px 28px", position: "relative" }}>
 
           {/* ── Step 1: Name ── */}
           <div
@@ -179,49 +195,17 @@ function CheckIn() {
                 autoComplete="off"
                 spellCheck={false}
                 className="placeholder:text-blue-200"
-                style={{
-                  width: "100%",
-                  background: "transparent",
-                  border: "none",
-                  borderBottom: "2px solid #045CFC",
-                  fontSize: 28,
-                  fontFamily: '"DM Serif Display", serif',
-                  fontWeight: 400,
-                  color: "#045CFC",
-                  padding: "8px 0 12px",
-                  outline: "none",
-                  caretColor: "#045CFC",
-                  boxSizing: "border-box",
-                }}
+                style={inputStyle(name)}
               />
             </div>
 
-            <button
-              onClick={goNext}
-              disabled={!name.trim()}
-              style={{
-                width: "100%",
-                background: name.trim() ? "#82AEFE" : "#E5ECFF",
-                color: name.trim() ? "#000000" : "#9EB8FE",
-                border: "none",
-                padding: "16px 24px",
-                fontSize: 15,
-                fontWeight: 600,
-                letterSpacing: "0.01em",
-                cursor: name.trim() ? "pointer" : "not-allowed",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                transition: "background 0.2s ease, color 0.2s ease",
-                fontFamily: "Inter, sans-serif",
-              }}
-            >
+            <button onClick={goNext} disabled={!name.trim()} style={continueBtn(!!name.trim())}>
               <span>Continue</span>
               <ArrowRight size={18} />
             </button>
           </div>
 
-          {/* ── Step 2: Duration ── */}
+          {/* ── Step 2: Company ── */}
           <div
             style={{
               ...slideStyle(2),
@@ -230,77 +214,45 @@ function CheckIn() {
               flex: 1,
             }}
           >
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", paddingBottom: 48 }}>
               <p style={{ fontSize: 11, fontWeight: 600, color: "#82AEFE", letterSpacing: "0.06em", marginBottom: 20, fontFamily: "Inter, sans-serif" }}>
                 STEP 2 OF 2
               </p>
               <h1
                 style={{
                   fontFamily: '"DM Serif Display", serif',
-                  fontSize: 38,
-                  lineHeight: 1.1,
+                  fontSize: 44,
+                  lineHeight: 1.08,
                   color: "#045CFC",
                   fontWeight: 400,
-                  margin: "0 0 8px",
+                  margin: "0 0 32px",
                 }}
               >
-                How long are you<br />in today?
+                Which company<br />are you from?
               </h1>
-              <p style={{ fontSize: 13, color: "#6B7280", marginBottom: 24, fontFamily: "Inter, sans-serif" }}>
-                Helps us suggest the right rooms. Optional.
-              </p>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, flex: 1 }}>
-                {durationOptions.map(({ id, label, sub, icon: Icon }) => {
-                  const selected = selectedDuration === id;
-                  return (
-                    <button
-                      key={id}
-                      onClick={() => setSelectedDuration(selected ? null : id as DurationOption)}
-                      style={{
-                        padding: "18px 16px",
-                        border: `1.5px solid ${selected ? "#045CFC" : "#C7D7FE"}`,
-                        background: selected ? "rgba(4,92,252,0.05)" : "rgba(255,255,255,0.6)",
-                        cursor: "pointer",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "flex-start",
-                        gap: 10,
-                        transition: "border-color 0.15s, background 0.15s",
-                        position: "relative",
-                        textAlign: "left",
-                      }}
-                    >
-                      <Icon size={18} style={{ color: selected ? "#045CFC" : "#82AEFE" }} />
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: selected ? "#045CFC" : "#1a1a2e", lineHeight: 1.3, fontFamily: "Inter, sans-serif" }}>
-                          {label}
-                        </div>
-                        <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2, fontFamily: "Inter, sans-serif" }}>
-                          {sub}
-                        </div>
-                      </div>
-                      {selected && (
-                        <div style={{ position: "absolute", top: 10, right: 10 }}>
-                          <Check size={13} style={{ color: "#045CFC" }} />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+              <input
+                ref={companyRef}
+                type="text"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                placeholder="Your company"
+                autoComplete="off"
+                spellCheck={false}
+                className="placeholder:text-blue-200"
+                style={inputStyle(company)}
+              />
             </div>
 
-            <div style={{ display: "flex", gap: 12, paddingTop: 20 }}>
+            <div style={{ display: "flex", gap: 12 }}>
               <button
                 onClick={goBack}
                 style={{
-                  padding: "14px 24px",
+                  padding: "16px 24px",
                   background: "transparent",
                   border: "1.5px solid #045CFC",
-                  borderRadius: 44,
                   color: "#045CFC",
-                  fontSize: 14,
+                  fontSize: 15,
                   fontWeight: 600,
                   cursor: "pointer",
                   whiteSpace: "nowrap",
@@ -312,24 +264,11 @@ function CheckIn() {
               </button>
               <button
                 onClick={handleSubmit}
-                style={{
-                  flex: 1,
-                  background: "#82AEFE",
-                  border: "none",
-                  color: "#000000",
-                  padding: "14px 24px",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  fontFamily: "Inter, sans-serif",
-                  transition: "background 0.15s",
-                }}
+                disabled={!company.trim()}
+                style={{ ...continueBtn(!!company.trim()), flex: 1, justifyContent: "center", gap: 8 }}
               >
-                Get started
+                <span>Get started</span>
+                <ArrowRight size={18} />
               </button>
             </div>
           </div>
@@ -357,16 +296,14 @@ function CheckIn() {
                 lineHeight: 1.1,
                 color: "#045CFC",
                 fontWeight: 400,
-                margin: "0 0 12px",
+                margin: "0 0 8px",
               }}
             >
               Welcome,<br />{name}!
             </h1>
-            {durationLabel && (
-              <p style={{ fontSize: 14, color: "#82AEFE", marginBottom: 8, fontFamily: "Inter, sans-serif" }}>
-                {durationLabel}
-              </p>
-            )}
+            <p style={{ fontSize: 14, color: "#82AEFE", marginBottom: 4, fontFamily: "Inter, sans-serif" }}>
+              {company}
+            </p>
             <p style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 40, fontFamily: "Inter, sans-serif" }}>
               You're checked in. Have a great day.
             </p>
@@ -376,7 +313,6 @@ function CheckIn() {
                 padding: "13px 32px",
                 background: "transparent",
                 border: "1.5px solid #C7D7FE",
-                borderRadius: 44,
                 color: "#82AEFE",
                 fontSize: 13,
                 fontWeight: 600,
@@ -401,7 +337,7 @@ function CheckIn() {
           </span>
           {name && step !== 1 && (
             <span style={{ fontSize: 11, color: "#C7D7FE", fontFamily: "Inter, sans-serif" }}>
-              {step === "done" ? `Checked in · ${name}` : `Welcome, ${name}`}
+              {step === "done" ? `Checked in · ${name}` : `Hi, ${name}`}
             </span>
           )}
         </div>

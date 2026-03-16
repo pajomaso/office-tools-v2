@@ -14,9 +14,11 @@ const durationOptions = [
 export function IdentityModal({
   isOpen,
   onSave,
+  siteName = "The Office Engine",
 }: {
   isOpen: boolean;
   onSave: (name: string) => void;
+  siteName?: string;
 }) {
   const [step, setStep] = useState<Step>(1);
   const [name, setName] = useState("");
@@ -144,7 +146,7 @@ export function IdentityModal({
               fontFamily: "Inter, sans-serif",
             }}
           >
-            The Office Engine
+            {siteName}
           </span>
 
           {/* Animated pill step dots */}

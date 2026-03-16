@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Lock, Eye, EyeOff, ShieldCheck, BookOpen, Phone, Save } from "lucide-react";
+import { Lock, Eye, EyeOff, ShieldCheck, BookOpen, Phone, Save, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function AdminSettings() {
@@ -40,6 +40,38 @@ export default function AdminSettings() {
       }
     } catch { setPwError("Network error. Please try again."); }
     finally { setPwLoading(false); }
+  };
+
+  // ── Site identity ──────────────────────────────────────────────────────
+  const [siteName, setSiteName] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [identityLoading, setIdentityLoading] = useState(false);
+  const [identitySaved, setIdentitySaved] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/settings/site-identity")
+      .then(r => r.json())
+      .then(d => { setSiteName(d.siteName ?? ""); setLogoUrl(d.logoUrl ?? ""); })
+      .catch(() => {});
+  }, []);
+
+  const handleSaveIdentity = async () => {
+    setIdentityLoading(true);
+    try {
+      const res = await fetch("/api/settings/site-identity", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ siteName, logoUrl }),
+      });
+      if (res.ok) {
+        toast({ title: "Identity updated", description: "Site name and logo saved." });
+        setIdentitySaved(true);
+        setTimeout(() => setIdentitySaved(false), 2000);
+      } else {
+        toast({ variant: "destructive", title: "Failed to save" });
+      }
+    } catch { toast({ variant: "destructive", title: "Network error" }); }
+    finally { setIdentityLoading(false); }
   };
 
   // ── Office info ─────────────────────────────────────────────────────────
@@ -135,6 +167,55 @@ export default function AdminSettings() {
           )}
           <Button onClick={handleChangePw} disabled={pwLoading} className="w-full h-12 rounded-xl">
             {pwLoading ? "Updating..." : "Update Password"}
+          </Button>
+        </div>
+      </Card>
+
+      {/* ── SITE IDENTITY ─────────────────────────────────────────────────── */}
+      <Card className="p-6 rounded-2xl shadow-sm space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+            <Palette className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-lg">Site Identity</h2>
+            <p className="text-sm text-muted-foreground">Customize the name and logo shown to all users.</p>
+          </div>
+        </div>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Site Name</label>
+            <Input
+              placeholder="The Office Engine"
+              value={siteName}
+              onChange={e => setSiteName(e.target.value)}
+              className="h-12 rounded-xl"
+            />
+            <p className="text-xs text-muted-foreground">Displayed in the header and on the welcome screen.</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Logo URL <span className="text-muted-foreground font-normal">(optional)</span></label>
+            <Input
+              placeholder="https://example.com/logo.png"
+              value={logoUrl}
+              onChange={e => setLogoUrl(e.target.value)}
+              className="h-12 rounded-xl font-mono text-sm"
+            />
+            <p className="text-xs text-muted-foreground">Paste a direct image URL. Leave blank to use the default icon.</p>
+          </div>
+          {logoUrl && (
+            <div className="p-4 rounded-xl bg-muted flex items-center gap-3">
+              <img src={logoUrl} alt="Logo preview" className="h-8 w-auto object-contain max-w-[100px]" onError={e => (e.currentTarget.style.display = "none")} />
+              <span className="text-sm text-muted-foreground">Logo preview</span>
+            </div>
+          )}
+          <Button
+            onClick={handleSaveIdentity}
+            disabled={identityLoading}
+            className={cn("h-11 rounded-xl px-6 gap-2", identitySaved && "bg-green-600 hover:bg-green-600")}
+          >
+            <Save className="w-4 h-4" />
+            {identityLoading ? "Saving..." : identitySaved ? "Saved!" : "Save Identity"}
           </Button>
         </div>
       </Card>

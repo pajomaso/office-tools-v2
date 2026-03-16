@@ -49,6 +49,24 @@ router.put("/settings/admin-password", async (req, res) => {
   res.json({ success: true });
 });
 
+// ── Site identity (name + logo) ────────────────────────────────────────────
+router.get("/settings/site-identity", async (_req, res) => {
+  const [siteName, logoUrl] = await Promise.all([
+    getSetting("site_name", ""),
+    getSetting("site_logo_url", ""),
+  ]);
+  res.json({ siteName, logoUrl });
+});
+
+router.put("/settings/site-identity", async (req, res) => {
+  const { siteName, logoUrl } = req.body;
+  await Promise.all([
+    siteName !== undefined ? setSetting("site_name", siteName) : Promise.resolve(),
+    logoUrl !== undefined ? setSetting("site_logo_url", logoUrl) : Promise.resolve(),
+  ]);
+  res.json({ success: true });
+});
+
 // ── Office info (editable instructions) ───────────────────────────────────
 const DEFAULT_INSTRUCTIONS = `## Alarm & Access
 

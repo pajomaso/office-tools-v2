@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
   useGetRooms, 
@@ -52,10 +52,17 @@ function addMinutesToTime(time: string, minutes: number): string {
 }
 
 export default function Rooms() {
-  const { userName } = useAppState();
+  const { userName, isAdmin } = useAppState();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: getGetBookingsQueryKey() });
+    }, 30000);
+    return () => clearInterval(id);
+  }, [queryClient]);
+
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activeRoomId, setActiveRoomId] = useState<number | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -101,7 +108,6 @@ export default function Rooms() {
   const weekDays = Array.from({ length: 5 }).map((_, i) => addDays(start, i));
 
   const [bookingModal, setBookingModal] = useState<{room: any, date: Date, time: string} | null>(null);
-  const [title, setTitle] = useState("");
   const [startTime, setStartTime] = useState("08:00");
   const [durationMinutes, setDurationMinutes] = useState(60);
 
@@ -109,7 +115,6 @@ export default function Rooms() {
     setBookingModal({ room, date, time });
     setStartTime(time);
     setDurationMinutes(60);
-    setTitle("");
   };
 
   const computedEndTime = durationMinutes === -1 ? DAY_END : addMinutesToTime(startTime, durationMinutes);
@@ -118,13 +123,13 @@ export default function Rooms() {
   const validStartSlots = ALL_SLOTS.filter(s => s < DAY_END);
 
   const handleBook = () => {
-    if (!bookingModal || !title.trim()) return;
+    if (!bookingModal) return;
     const endTime = durationMinutes === -1 ? DAY_END : addMinutesToTime(startTime, durationMinutes);
     createBooking.mutate({
       data: {
         roomId: bookingModal.room.id,
         userName,
-        title: title.trim(),
+        title: userName,
         date: format(bookingModal.date, 'yyyy-MM-dd'),
         startTime: durationMinutes === -1 ? DAY_START : startTime,
         endTime,
@@ -301,13 +306,13 @@ export default function Rooms() {
                             )}>
                               {isFirstSlot && (
                                 <div>
-                                  <p className="text-xs font-bold truncate leading-tight">{booking.title}</p>
+                                  <p className="text-xs font-bold truncate leading-tight">{booking.userName}</p>
                                   <p className={cn("text-[10px] truncate", isMine ? "text-primary-foreground/80" : "text-slate-500")}>
-                                    {booking.userName} · {formatTime(booking.startTime)}–{formatTime(booking.endTime)}
+                                    {formatTime(booking.startTime)}–{formatTime(booking.endTime)}
                                   </p>
                                 </div>
                               )}
-                              {isMine && isFirstSlot && (
+                              {(isMine || isAdmin) && isFirstSlot && (
                                 <button 
                                   onClick={() => deleteBooking.mutate({ id: booking.id })}
                                   className="absolute bottom-1 right-1 p-1.5 rounded-lg bg-white/20 hover:bg-white/40 transition-colors"
@@ -352,17 +357,6 @@ export default function Rooms() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Meeting Title</label>
-              <Input 
-                placeholder="e.g. Sync with Marketing" 
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                autoFocus
-                className="h-12 rounded-xl"
-              />
-            </div>
-
             {/* Time row */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
@@ -421,7 +415,7 @@ export default function Rooms() {
             <Button variant="outline" onClick={() => setBookingModal(null)} className="h-12 rounded-xl">Cancel</Button>
             <Button 
               onClick={handleBook} 
-              disabled={!title.trim() || createBooking.isPending}
+              disabled={createBooking.isPending}
               className="h-12 rounded-xl px-8"
             >
               {createBooking.isPending ? "Confirming..." : "Confirm Booking"}

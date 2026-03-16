@@ -9,14 +9,20 @@ function timesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string
 }
 
 router.get("/bookings", async (req, res) => {
-  const { date, roomId } = req.query;
+  const { date, roomId, past } = req.query;
   let bookings = await db.select({
     booking: bookingsTable,
     roomName: roomsTable.name,
   }).from(bookingsTable)
     .leftJoin(roomsTable, eq(bookingsTable.roomId, roomsTable.id));
 
-  if (date) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  if (past === "true") {
+    bookings = bookings.filter(b => b.booking.date < today);
+  } else if (past === "false") {
+    bookings = bookings.filter(b => b.booking.date >= today);
+  } else if (date) {
     bookings = bookings.filter(b => b.booking.date === date);
   }
   if (roomId) {

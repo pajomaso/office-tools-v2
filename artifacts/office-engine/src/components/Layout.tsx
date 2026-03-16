@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAppState } from "@/hooks/use-app-state";
 import { IdentityModal } from "./IdentityModal";
@@ -29,6 +29,19 @@ import { Button } from "@/components/ui/button";
 export function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const { userName, saveUserName, isAdmin, exitAdmin, enterAdmin } = useAppState();
+
+  const [siteName, setSiteName] = useState("The Office Engine");
+  const [logoUrl, setLogoUrl] = useState("");
+
+  useEffect(() => {
+    fetch("/api/settings/site-identity")
+      .then(r => r.json())
+      .then(d => {
+        if (d.siteName) setSiteName(d.siteName);
+        if (d.logoUrl) setLogoUrl(d.logoUrl);
+      })
+      .catch(() => {});
+  }, []);
 
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [password, setPassword] = useState("");
@@ -74,7 +87,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col relative w-full overflow-x-hidden">
-      <IdentityModal isOpen={!isSetup} onSave={saveUserName} />
+      <IdentityModal isOpen={!isSetup} onSave={saveUserName} siteName={siteName} />
 
       {/* Admin password dialog */}
       <Dialog open={showPasswordDialog} onOpenChange={(open) => !open && setShowPasswordDialog(false)}>
@@ -125,11 +138,15 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className="flex justify-between items-center h-14">
             {/* Logo */}
             <Link href={isAdmin ? "/admin/rooms" : "/dashboard"} className="flex items-center gap-2.5 hover:opacity-70 transition-opacity">
-              <div className="w-7 h-7 bg-foreground/8 border border-border flex items-center justify-center">
-                <Building2 className="w-4 h-4 text-foreground" />
-              </div>
+              {logoUrl ? (
+                <img src={logoUrl} alt={siteName} className="h-7 w-auto object-contain max-w-[120px]" />
+              ) : (
+                <div className="w-7 h-7 bg-foreground/8 border border-border flex items-center justify-center">
+                  <Building2 className="w-4 h-4 text-foreground" />
+                </div>
+              )}
               <span className="font-display font-bold text-base tracking-tight text-foreground hidden sm:block uppercase">
-                The Office Engine
+                {siteName}
               </span>
             </Link>
 

@@ -1,21 +1,52 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
   useGetRooms,
   useCreateRoom,
   useUpdateRoom,
-  getGetRoomsQueryKey
+  useDeleteBooking,
+  getGetRoomsQueryKey,
+  getGetBookingsQueryKey
 } from "@workspace/api-client-react";
-import { Edit, Plus, Save, X } from "lucide-react";
+import { Edit, Plus, Save, X, History, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 export default function AdminRooms() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data: rooms = [], isLoading } = useGetRooms();
+
+  const [pastBookings, setPastBookings] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
+  const fetchHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const res = await fetch("/api/bookings?past=true");
+      const data = await res.json();
+      setPastBookings(data.sort((a: any, b: any) => b.date.localeCompare(a.date)));
+    } catch { toast({ variant: "destructive", title: "Failed to load history" }); }
+    finally { setHistoryLoading(false); }
+  };
+
+  useEffect(() => {
+    if (showHistory) fetchHistory();
+  }, [showHistory]);
+
+  const deleteBooking = useDeleteBooking({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetBookingsQueryKey() });
+        fetchHistory();
+        toast({ title: "Booking removed" });
+      },
+    },
+  });
   
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<any>({});
@@ -74,14 +105,56 @@ export default function AdminRooms() {
     <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold font-display">Manage Rooms</h1>
-        <Button onClick={() => {
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShowHistory(v => !v)}>
+            <History className="w-4 h-4 mr-2" /> {showHistory ? "Hide History" : "Booking History"}
+          </Button>
+          <Button onClick={() => {
           setIsCreating(true);
           setEditingId(null);
           setEditForm({ name: "", capacity: 10, description: "", photoUrl: "" });
-        }}>
-          <Plus className="w-4 h-4 mr-2" /> Add Room
-        </Button>
+          }}>
+            <Plus className="w-4 h-4 mr-2" /> Add Room
+          </Button>
+        </div>
       </div>
+
+      {showHistory && (
+        <Card className="p-6 rounded-2xl shadow-sm space-y-4">
+          <div className="flex items-center gap-2">
+            <History className="w-5 h-5 text-muted-foreground" />
+            <h2 className="font-semibold text-lg">Past Bookings</h2>
+          </div>
+          {historyLoading ? (
+            <p className="text-sm text-muted-foreground animate-pulse">Loading history...</p>
+          ) : pastBookings.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No past bookings found.</p>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {pastBookings.map(b => (
+                <div key={b.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="text-xs font-mono text-muted-foreground whitespace-nowrap">{b.date}</div>
+                    <div className="text-sm font-medium truncate">{b.roomName}</div>
+                    <div className="text-sm text-muted-foreground truncate">{b.userName}</div>
+                    <div className="text-xs text-muted-foreground whitespace-nowrap">
+                      {b.startTime}–{b.endTime}
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => deleteBooking.mutate({ id: b.id })}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       <div className="space-y-4">
         {isCreating && (

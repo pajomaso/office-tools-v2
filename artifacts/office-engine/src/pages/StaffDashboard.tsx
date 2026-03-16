@@ -103,7 +103,7 @@ function InfoCard({ icon: Icon, iconColor, title, open, onToggle, children }: {
 }
 
 export default function StaffDashboard() {
-  const { userName } = useAppState();
+  const { userName, isAdmin } = useAppState();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -111,7 +111,6 @@ export default function StaffDashboard() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activeRoomId, setActiveRoomId] = useState<number | null>(null);
   const [bookingModal, setBookingModal] = useState<{ room: any; date: Date; time: string } | null>(null);
-  const [bookTitle, setBookTitle] = useState("");
   const [startTime, setStartTime] = useState("08:00");
   const [durationMinutes, setDurationMinutes] = useState(60);
 
@@ -126,6 +125,13 @@ export default function StaffDashboard() {
     date: format(selectedDate, "yyyy-MM-dd"),
     roomId: activeRoomId || undefined,
   });
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: getGetBookingsQueryKey() });
+    }, 30000);
+    return () => clearInterval(id);
+  }, [queryClient]);
 
   const createBooking = useCreateBooking({
     mutation: {
@@ -153,17 +159,16 @@ export default function StaffDashboard() {
     setBookingModal({ room, date, time });
     setStartTime(time);
     setDurationMinutes(60);
-    setBookTitle("");
   };
 
   const handleBook = () => {
-    if (!bookingModal || !bookTitle.trim()) return;
+    if (!bookingModal) return;
     const endTime = durationMinutes === -1 ? DAY_END : addMinutesToTime(startTime, durationMinutes);
     createBooking.mutate({
       data: {
         roomId: bookingModal.room.id,
         userName,
-        title: bookTitle.trim(),
+        title: userName,
         date: format(bookingModal.date, "yyyy-MM-dd"),
         startTime: durationMinutes === -1 ? DAY_START : startTime,
         endTime,
@@ -370,13 +375,13 @@ export default function StaffDashboard() {
                           )}>
                             {isFirst && (
                               <>
-                                <p className="text-xs font-bold truncate leading-tight">{booking.title}</p>
+                                <p className="text-xs font-bold truncate leading-tight">{booking.userName}</p>
                                 <p className={cn("text-[10px] truncate", isMine ? "opacity-80" : "text-slate-500")}>
                                   {formatTime(booking.startTime)}–{formatTime(booking.endTime)}
                                 </p>
                               </>
                             )}
-                            {isMine && isFirst && (
+                            {(isMine || isAdmin) && isFirst && (
                               <button
                                 onClick={() => deleteBooking.mutate({ id: booking.id })}
                                 className="absolute bottom-1 right-1 p-1 rounded-lg bg-white/20 hover:bg-white/40 transition-colors"
@@ -739,10 +744,6 @@ export default function StaffDashboard() {
             <DialogDescription>{bookingModal && format(bookingModal.date, "EEEE, MMMM d, yyyy")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Meeting Title</label>
-              <Input placeholder="e.g. Sync with Marketing" value={bookTitle} onChange={e => setBookTitle(e.target.value)} autoFocus className="h-12 rounded-xl" onKeyDown={e => e.key === "Enter" && handleBook()} />
-            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Start time</label>
@@ -778,7 +779,7 @@ export default function StaffDashboard() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBookingModal(null)} className="h-12 rounded-xl">Cancel</Button>
-            <Button onClick={handleBook} disabled={!bookTitle.trim() || createBooking.isPending} className="h-12 rounded-xl px-8">
+            <Button onClick={handleBook} disabled={createBooking.isPending} className="h-12 rounded-xl px-8">
               {createBooking.isPending ? "Confirming..." : "Confirm Booking"}
             </Button>
           </DialogFooter>

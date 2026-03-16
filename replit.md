@@ -33,9 +33,11 @@ A centralized office management application with Staff and Admin interfaces. Cov
 ### Room Booking ("The Peacekeeper")
 - Weekly calendar grid (8am-6pm, Mon-Sun)
 - 3 rooms: The Boardroom (12), The Huddle Pod (6), The Innovation Lab (20)
-- Anti-double-booking validation on server side
-- Users can only cancel/edit their own bookings
-- Admin: full booking management + edit room names/descriptions/photos
+- Anti-double-booking validation on server side (returns 409 on conflict)
+- No "Meeting Title" field — responsible person's name (`userName`) is used as booking title
+- Permission-based cancellation: booking owner OR admin can cancel
+- Real-time polling: bookings invalidated every 30 seconds
+- Admin: full booking management, booking history view (past bookings via `?past=true`), edit room names/descriptions/photos
 
 ### Pantry & Supplies ("The Inventory Manager")
 - Wishlist request cards with category and urgency badges
@@ -51,9 +53,15 @@ A centralized office management application with Staff and Admin interfaces. Cov
 - Admin vendor directory (Plumber, Electrician, IT, HVAC, Cleaning, General)
 - Admin scheduled maintenance log with frequency and due dates
 
+### Admin Settings
+- Change admin password (server-validated)
+- **Site Identity**: customize site name + logo URL — applied to header and check-in modal dynamically
+- Office Info editor: Instructions (plain text), Video Guide URL, Useful Contacts
+
 ### Auth
 - No login required — users enter their name on first visit (stored in localStorage)
 - Admin mode toggled via header button (stored in localStorage)
+- Admin password verified server-side via `/api/auth/admin-login`
 
 ## Structure
 

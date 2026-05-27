@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ptc-site",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "export PATH=\"/Users/paulo/Library/Application Support/com.raycast.macos/NodeJS/runtime/20.9.0/bin:/Users/paulo/.local/share/pnpm:$PATH\" && pnpm -F @workspace/ptc-site dev"],
+      "port": 5003
+    }
+  ]
+}

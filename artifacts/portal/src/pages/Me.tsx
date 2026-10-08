@@ -4,7 +4,6 @@ import { Check, ChevronDown, Copy, Eye, EyeOff, KeyRound, Wifi } from "lucide-re
 import { Link } from "wouter";
 import { api, type Area, type Me, type MyTag } from "@/lib/api";
 import { Badge, Button, Card, PageHeader, Skeleton } from "@/components/ui";
-import { reqKind, reqStatus } from "@/pages/Tags";
 
 function CopyButton({ value, label }: { value: string; label: string }) {
   const [done, setDone] = useState(false);
@@ -29,40 +28,44 @@ function Reveal({ label, shown, onToggle, value, empty }: { label: string; shown
   );
 }
 
+const pendingText = {
+  assign: "Your tag is being set up. It may not work at the door until the supplier confirms it.",
+  reassign: "Your tag is being set up. It may not work at the door until the supplier confirms it.",
+  rename: "The name on your tag is being updated by the supplier.",
+  lost: "Your tag is being deactivated by the supplier.",
+  return: "Your tag is being returned.",
+} as const;
+
 function TagCard() {
   const qc = useQueryClient();
   const my = useQuery({ queryKey: ["my-tag"], queryFn: () => api<MyTag>("/my-tag") });
   const [showNumber, setShowNumber] = useState(false), [showCode, setShowCode] = useState(false);
   // The number and code are only fetched once you ask to see them, and never kept in the page's cache.
   const secret = useQuery({ queryKey: ["my-tag-code"], queryFn: () => api<{ number: string | null; code: string | null; active: boolean }>("/my-tag/code"), enabled: showNumber || showCode, gcTime: 0, staleTime: 0 });
-  const refresh = () => { qc.invalidateQueries({ queryKey: ["my-tag"] }); qc.invalidateQueries({ queryKey: ["items"] }); };
-  const ask = useMutation({ mutationFn: () => api("/tag-requests", { method: "POST", json: {} }), onSuccess: refresh });
-  const newCode = useMutation({ mutationFn: () => api("/me/request-code", { method: "POST" }), onSuccess: refresh });
+  const [sent, setSent] = useState<string | null>(null);
+  const ask = useMutation({ mutationFn: (kind: "new" | "lost" | "code") => api("/me/request", { method: "POST", json: { kind } }).then(() => kind), onSuccess: (k) => { setSent(k); qc.invalidateQueries({ queryKey: ["items"] }); } });
   if (my.isLoading || !my.data) return <Skeleton className="h-40" />;
-  const open = my.data.requests.find((r) => r.status === "to_send" || r.status === "sent");
-  const last = my.data.requests[0];
-  const hasTag = !!my.data.tag || !!open?.newTagNumber;
-  const err = ask.error ?? newCode.error;
+  const { tag, pending } = my.data;
+  const hasTag = !!tag || !!pending?.hasCode || pending?.kind === "assign" || pending?.kind === "reassign";
+  const sentText = { new: "Your request for a tag was sent to the admins.", lost: "The admins were told your tag is lost.", code: "The admins were asked for a new code." } as const;
   return (
     <Card className="p-5">
       <div className="mb-3 flex items-center gap-2 text-base font-semibold"><KeyRound className="size-4" />My tag</div>
       {hasTag ? (
         <dl className="grid gap-4 sm:grid-cols-2">
-          <Reveal label="Tag number" shown={showNumber} onToggle={() => setShowNumber(!showNumber)} value={secret.data?.number ?? my.data.tag?.number} empty={secret.isLoading ? "…" : "Not available"} />
+          <Reveal label="Tag number" shown={showNumber} onToggle={() => setShowNumber(!showNumber)} value={secret.data?.number} empty={secret.isLoading ? "…" : "Not available"} />
           <Reveal label="Code" shown={showCode} onToggle={() => setShowCode(!showCode)} value={secret.data?.code} empty={secret.isLoading ? "…" : "Not set yet — ask an admin"} />
         </dl>
       ) : <p className="text-sm text-[var(--ink-soft)]">You don't have a tag yet.</p>}
-      {open && (
-        <p className="mt-4 rounded-md bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--ink-soft)]">
-          <Badge tone="brand">{reqStatus[open.status]}</Badge> <span className="ml-1">{reqKind[open.kind]}{open.newTagNumber ? ` (tag ${showNumber && secret.data?.number ? secret.data.number : "••••"})` : ""}. It may not work at the door until the supplier confirms it.</span>
-        </p>
-      )}
-      {!open && last?.status === "rejected" && <p className="mt-4 text-sm text-[var(--danger)]">Your last tag request was rejected. Ask an admin.</p>}
+      {tag?.status === "blocked" && <p className="mt-3 text-sm text-[var(--warn)]">Your tag is blocked. Ask an admin.</p>}
+      {pending && <p className="mt-4 rounded-md bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--ink-soft)]"><Badge tone="brand">Pending</Badge> <span className="ml-1">{pendingText[pending.kind]}</span></p>}
+      {sent && <p role="status" className="mt-3 text-sm text-[var(--ok)]">{sentText[sent as keyof typeof sentText]}</p>}
       <div className="mt-4 flex flex-wrap gap-2">
-        {!open && <Button variant="outline" disabled={ask.isPending} onClick={() => confirm(my.data.tag ? "Report your tag as lost and request a replacement?" : "Request an access tag?") && ask.mutate()}>{my.data.tag ? "I lost my tag" : "Request a tag"}</Button>}
-        {hasTag && <Button variant="outline" disabled={newCode.isPending || newCode.isSuccess} onClick={() => confirm("Ask an admin for a new door code?") && newCode.mutate()}>{newCode.isSuccess ? "Code requested ✓" : "Request a new code"}</Button>}
+        {!hasTag && <Button variant="outline" disabled={ask.isPending} onClick={() => confirm("Ask the admins for an access tag?") && ask.mutate("new")}>Request a tag</Button>}
+        {tag && !pending && <Button variant="outline" disabled={ask.isPending} onClick={() => confirm("Tell the admins your tag is lost and ask for a replacement?") && ask.mutate("lost")}>I lost my tag</Button>}
+        {hasTag && <Button variant="outline" disabled={ask.isPending} onClick={() => confirm("Ask the admins for a new door code?") && ask.mutate("code")}>Request a new code</Button>}
       </div>
-      {err && <p role="alert" className="mt-2 text-sm text-[var(--danger)]">{err.message}</p>}
+      {ask.isError && <p role="alert" className="mt-2 text-sm text-[var(--danger)]">{ask.error.message}</p>}
     </Card>
   );
 }

@@ -60,10 +60,10 @@ function OnboardDialog({ user, onClose }: { user: AdminUser; onClose: () => void
     onSuccess: () => refresh(qc),
   });
   return (
-    <Dialog title={`Onboard ${user.name}`} description="Give them a tag and a 4-digit code. The change is queued for the access supplier." onClose={onClose}>
+    <Dialog title={`Onboard ${user.name}`} description="Give them a tag and a 4-digit code. The change is added to the pending batch for Ricardo." onClose={onClose}>
       {go.isSuccess ? (
         <div className="flex flex-col gap-3">
-          <p className="text-sm text-[var(--ink-soft)]">Done. Tag <span className="mono font-medium">{tag}</span> is <b>pending</b> until the supplier confirms it (see Tags).</p>
+          <p className="text-sm text-[var(--ink-soft)]">Done. Tag <span className="mono font-medium">{tag}</span> is <b>pending</b>: it joins the pending batch on the Tags page and becomes active once Ricardo marks it done.</p>
           {go.data.welcome && <MailPreviewBox m={go.data.welcome} />}
           <div className="flex justify-end"><Button onClick={onClose}>Close</Button></div>
         </div>

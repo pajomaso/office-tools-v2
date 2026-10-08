@@ -37,18 +37,29 @@ export type Area = {
   guides: { id: string; title: string; body: string }[];
   bookingNote: string;
 };
-export type Tag = { id: string; number: string; clientId?: string | null; client?: string | null; access: string; status: "active" | "spare" | "lost" | "blocked" | "pending"; hasCode?: boolean };
-export type TagRequest = {
-  id: string; clientId: string; kind: "new" | "replace" | "deactivate"; note: string; status: "to_send" | "sent" | "confirmed" | "rejected";
-  newTagNumber: string | null; createdAt: string; client?: string; clientEmail?: string; oldNumber?: string | null;
+export type TagStatus = "active" | "spare" | "lost" | "blocked" | "pending";
+export type TagLevel = "user" | "administrator" | "service";
+export type ChangeKind = "assign" | "reassign" | "rename" | "lost" | "return";
+export type TagRow = {
+  id: string; number: string; status: TagStatus; baseStatus: Exclude<TagStatus, "pending">; holderName: string; clientId: string | null; user: string | null;
+  level: TagLevel; note: string; companyId: string | null; company: string | null; hasCode: boolean;
+  pending: { changeId: string; kind: ChangeKind; toName: string; batchStatus: string } | null;
 };
-export type MyTag = { tag: Tag | null; requests: TagRequest[] };
-export type AdminTags = { tags: Tag[]; requests: TagRequest[]; supplier: { name?: string; email?: string } };
+export type TagLine = {
+  id: string; tagId: string; tagNumber: string; kind: ChangeKind; fromName: string; toName: string; status: "pending" | "done" | "outdated" | "removed";
+  note: string; doneAt: string | null; doneBy: string | null;
+};
+export type TagBatch = { id: string; status: "open" | "sent" | "done"; createdAt: string; sentAt: string | null; expiresAt: string | null; linkActive: boolean; revoked: boolean; lines: TagLine[] };
+export type AdminTags = { tags: TagRow[]; open: TagBatch | null; sent: TagBatch[]; supplier: { name?: string; email?: string } };
+export type TagLogRow = { id: string; tagNumber: string; event: string; detail: string; actor: string; bySupplier: boolean; ip: string | null; createdAt: string };
+export type TagNotifications = { unread: number; items: { id: string; tagNumber: string; event: string; detail: string; actor: string; createdAt: string }[] };
+export type MyTag = { tag: { status: string; level: string; hasCode: boolean } | null; pending: { kind: ChangeKind; hasCode: boolean } | null };
+export type SupplierLine = { id: string; tagNumber: string; kind: ChangeKind; fromName: string; toName: string; level: TagLevel; status: TagLine["status"]; doneAt: string | null };
 export type AdminUser = {
   id: string; email: string; name: string; role: "user" | "admin"; kind: "company" | "event"; companyId: string | null; company: string | null;
   hasPassword: boolean; tag: string | null; pendingTag: string | null; hasOpenRequest: boolean;
 };
 export type Company = { id: string; name: string };
 export type MailPreview = { sent: boolean; preview: { to: string; subject: string; body: string }; devLink?: string };
-export type Todo = { tagRequests: TagRequest[] };
+export type InboxCount = { pending: number; items: number; openTagLines: number; supplierUpdates: number };
 

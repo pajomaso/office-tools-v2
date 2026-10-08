@@ -10,6 +10,7 @@ import Inbox from "@/pages/Inbox";
 import Tags from "@/pages/Tags";
 import Users from "@/pages/Users";
 import Account from "@/pages/Account";
+import Access from "@/pages/Access";
 
 function Authed() {
   const { data: me, isLoading, isError } = useQuery({ queryKey: ["me"], queryFn: () => api<Me>("/me") });
@@ -34,6 +35,7 @@ function Authed() {
 export default function App() {
   const [loc] = useLocation();
   if (loc === "/app" || loc.startsWith("/app/")) return <Authed />;
+  if (loc.startsWith("/access/")) return <Access />; // the supplier's page: no sign-in, the secret link is the credential
   return (
     <Switch>
       <Route path="/login" component={Login} />

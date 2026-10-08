@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { api, type Item, type Me, type Todo } from "@/lib/api";
+import { api, type InboxCount, type Item, type Me } from "@/lib/api";
 import { Badge, Button, EmptyState, PageHeader, Skeleton, fieldInput, fieldCompact } from "@/components/ui";
 import { itemKind, itemStatus } from "@/lib/labels";
 import { fmtDay, ymd } from "@/lib/time";
-import { reqKind, reqStatus } from "@/pages/Tags";
 
 function Row({ i, me }: { i: Item; me: Me }) {
   const qc = useQueryClient();
@@ -34,23 +33,22 @@ function Row({ i, me }: { i: Item; me: Me }) {
 
 export default function Inbox({ me }: { me: Me }) {
   const items = useQuery({ queryKey: ["items"], queryFn: () => api<Item[]>("/items") });
-  const todo = useQuery({ queryKey: ["inbox-todo"], queryFn: () => api<Todo>("/inbox/todo") });
+  const count = useQuery({ queryKey: ["inbox-count"], queryFn: () => api<InboxCount>("/inbox/count") });
   const unclaimed = items.data?.filter((i) => i.status === "open" && !i.claimedBy) ?? [];
   const mine = items.data?.filter((i) => i.status !== "done" && !unclaimed.includes(i)) ?? [];
   const done = items.data?.filter((i) => i.status === "done") ?? [];
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Inbox" subtitle="Everything that is waiting on an admin: unclaimed issues and requests, and tag changes for the supplier." />
+      <PageHeader title="Inbox" subtitle="Everything that is waiting on an admin: unclaimed issues and requests, and the tag changes for Ricardo." />
       {items.isLoading ? <Skeleton className="h-40" /> : (
         <>
-          {!!todo.data?.tagRequests.length && (
+          {(!!count.data?.openTagLines || !!count.data?.supplierUpdates) && (
             <section>
-              <h2 className="mb-3 text-sm font-semibold">Tag changes ({todo.data.tagRequests.length})</h2>
-              <ul className="flex flex-col gap-2">{todo.data.tagRequests.map((r) => (
-                <li key={r.id}><Link href="/app/tags" className="flex items-center justify-between gap-3 rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3 hover:border-[var(--line-strong)]">
-                  <span className="text-sm"><span className="font-semibold">{r.client}</span> <span className="text-[var(--ink-mute)]">· {reqKind[r.kind]}</span></span><Badge tone="brand">{reqStatus[r.status]}</Badge>
-                </Link></li>
-              ))}</ul>
+              <h2 className="mb-3 text-sm font-semibold">Tags</h2>
+              <ul className="flex flex-col gap-2">
+                {!!count.data?.openTagLines && <li><Link href="/app/tags" className="flex items-center justify-between gap-3 rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3 hover:border-[var(--line-strong)]"><span className="text-sm">The pending batch for Ricardo has <b>{count.data.openTagLines}</b> change{count.data.openTagLines === 1 ? "" : "s"} waiting to be sent</span><Badge tone="brand">To send</Badge></Link></li>}
+                {!!count.data?.supplierUpdates && <li><Link href="/app/tags" className="flex items-center justify-between gap-3 rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3 hover:border-[var(--line-strong)]"><span className="text-sm">Ricardo has <b>{count.data.supplierUpdates}</b> update{count.data.supplierUpdates === 1 ? "" : "s"} you haven't seen</span><Badge tone="brand">New</Badge></Link></li>}
+              </ul>
             </section>
           )}
           <section><h2 className="mb-3 text-sm font-semibold">Unclaimed ({unclaimed.length})</h2>{unclaimed.length ? <ul className="flex flex-col gap-2">{unclaimed.map((i) => <Row key={i.id + i.updatedAt} i={i} me={me} />)}</ul> : <EmptyState title="All clear" body="Everything has been picked up." />}</section>

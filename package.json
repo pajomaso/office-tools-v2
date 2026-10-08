@@ -8,7 +8,8 @@
     "setup": "docker compose up -d postgres && sleep 2 && pnpm --filter @workspace/db run push && pnpm --filter @workspace/scripts run seed",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
+    "test:time": "for tz in UTC America/New_York Asia/Tokyo; do echo \"== machine timezone: $tz\"; TZ=$tz pnpm --filter @workspace/scripts exec tsx --test ../artifacts/api-server/src/routes/portal-time.test.ts ../artifacts/portal/src/lib/time.test.ts || exit 1; done"
   },
   "private": true,
   "devDependencies": {

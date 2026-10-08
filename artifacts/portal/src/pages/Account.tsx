@@ -20,8 +20,8 @@ export default function Account({ me }: { me: Me }) {
         <h2 className="text-sm font-semibold">{me.hasPassword ? "Change password" : "Set a password"}</h2>
         <p className="mt-1 text-xs text-[var(--ink-mute)]">Optional. Sign-in links keep working either way. At least 10 characters; a long phrase is best.</p>
         <form className="mt-4 flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); if (!mismatch) save.mutate(); }}>
-          {/* The email is included (hidden) so password managers file the new password under the right login. */}
-          <input type="email" name="username" autoComplete="username" value={me.email} readOnly hidden />
+          {/* The email is in the page (visually hidden, not display:none) so password managers file the new password under the right login. */}
+          <input type="email" name="username" autoComplete="username" value={me.email} readOnly tabIndex={-1} aria-hidden="true" className="sr-only" />
           {me.hasPassword && <div><label htmlFor="ac-cur" className={fieldLabel}>Current password</label><input id="ac-cur" name="current-password" type="password" autoComplete="current-password" className={fieldInput} value={current} onChange={(e) => setCurrent(e.target.value)} />
             <p className="mt-1 text-xs text-[var(--ink-mute)]">Not needed if you just signed in with a link.</p></div>}
           <div><label htmlFor="ac-new" className={fieldLabel}>New password</label><input id="ac-new" name="new-password" type="password" autoComplete="new-password" required minLength={10} className={fieldInput} value={pw} onChange={(e) => setPw(e.target.value)} /></div>

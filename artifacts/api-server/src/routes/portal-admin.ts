@@ -12,10 +12,11 @@ import {
 } from "@workspace/db";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { asyncRoute, guard, managerGuard, type Authed } from "./portal";
-import { codeFingerprint, decryptCode, encryptCode, isValidCode } from "./portal-crypto";
+import { codeFingerprint, decryptCode, encryptCode, hashToken, isValidCode } from "./portal-crypto";
 import { CODE_TAKEN, addChange, inboxTagCounts, isUniqueViolation, log } from "./portal-tags";
 import { DEFAULT_WELCOME, renderWelcome, sendMail, type WelcomeCopy } from "./portal-mail";
 import { randomBytes } from "node:crypto";
+import { publicBase } from "./portal-config";
 
 const router: IRouter = Router();
 router.use("/portal", cookieParser());
@@ -108,8 +109,8 @@ router.put("/portal/admin/welcome-email", managerGuard, asyncRoute(async (req, r
 // Builds the welcome email for a user (with a 7-day single-use invite link) and hands it to the mailer.
 async function inviteAndWelcome(user: typeof portalClientsTable.$inferSelect, origin: string) {
   const t = randomBytes(24).toString("base64url");
-  await db.insert(portalLoginTokensTable).values({ token: t, clientId: user.id, purpose: "invite", expiresAt: new Date(Date.now() + 7 * 86_400_000) });
-  const link = `${process.env.PORTAL_URL || origin}/api/portal/auth/verify?token=${t}`;
+  await db.insert(portalLoginTokensTable).values({ token: hashToken(t), clientId: user.id, purpose: "invite", expiresAt: new Date(Date.now() + 7 * 86_400_000) });
+  const link = `${publicBase(origin)}/api/portal/auth/verify?token=${t}`;
   const [own] = await db.select().from(portalTagsTable).where(and(eq(portalTagsTable.clientId, user.id), eq(portalTagsTable.status, "active"))).limit(1);
   const [waiting] = own ? [] : await db.select({ t: portalTagsTable }).from(portalTagChangesTable).innerJoin(portalTagsTable, eq(portalTagsTable.id, portalTagChangesTable.tagId))
     .where(and(eq(portalTagChangesTable.toUserId, user.id), eq(portalTagChangesTable.status, "pending"), inArray(portalTagChangesTable.kind, ["assign", "reassign"]))).limit(1);

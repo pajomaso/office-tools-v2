@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, createHmac, randomBytes, scrypt as scryptCb, timingSafeEqual, type BinaryLike } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, scrypt as scryptCb, timingSafeEqual, type BinaryLike } from "node:crypto";
 import { promisify } from "node:util";
 
 const scrypt = promisify(scryptCb) as (pw: BinaryLike, salt: BinaryLike, len: number) => Promise<Buffer>;
@@ -55,3 +55,8 @@ export function decryptCode(stored: string): string {
   d.setAuthTag(tag);
   return Buffer.concat([d.update(enc), d.final()]).toString("utf8");
 }
+
+// ── Secret tokens (sign-in links, sessions, the supplier's link) ────────────
+// The database only ever holds a SHA-256 hash of these, so a copy of the database can't be used to sign in.
+// The raw value lives only in the link / cookie. They are long random strings, so a plain hash is enough.
+export const hashToken = (t: string) => createHash("sha256").update(t).digest("hex");

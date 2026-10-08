@@ -9,12 +9,12 @@
   --surface-2: #f5f5f3;
   --ink: #0d0d0c;
   --ink-soft: #4a4a47;
-  --ink-mute: #8a8a85;
+  --ink-mute: #6b6b66; /* darker than the original #8a8a85, which was below the WCAG AA contrast for small text */
   --line: #e9e9e6;
   --line-strong: #d8d8d4;
-  --ok: #16a34a;
-  --warn: #d97706;
-  --danger: #dc2626;
+  --ok: #15803d; /* text-safe green (AA on white) */
+  --warn: #b45309; /* text-safe amber (AA on white) */
+  --danger: #b91c1c; /* text-safe red (AA also on the grey surfaces) */
   --r-sm: 6px;
   --r-md: 10px;
   --r-lg: 14px;

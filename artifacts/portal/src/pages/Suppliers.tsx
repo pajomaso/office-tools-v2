@@ -50,12 +50,12 @@ export default function Suppliers() {
                 <div className="min-w-0"><div className="text-sm font-semibold">{s.name}</div>{s.what && <div className="text-xs text-[var(--ink-soft)]">{s.what}</div>}</div>
                 <Button variant="outline" onClick={() => setEditing(s)}>Edit</Button>
               </div>
-              <dl className="mt-3 flex flex-col gap-1 text-sm">
+              <div className="mt-3 flex flex-col gap-1 text-sm">
                 {s.contactName && <div className="text-[var(--ink-soft)]">{s.contactName}</div>}
                 {s.phone && <div className="flex items-center gap-2"><Phone className="size-3.5 text-[var(--ink-mute)]" /><a href={`tel:${s.phone.replace(/\s/g, "")}`} className="text-[var(--brand)] hover:underline">{s.phone}</a></div>}
                 {s.email && <div className="flex items-center gap-2"><Mail className="size-3.5 text-[var(--ink-mute)]" /><a href={`mailto:${s.email}`} className="truncate text-[var(--brand)] hover:underline">{s.email}</a></div>}
                 {s.notes && <p className="mt-1 whitespace-pre-line text-xs text-[var(--ink-mute)]">{s.notes}</p>}
-              </dl>
+              </div>
             </Card>
           ))}
         </div>

@@ -1,4 +1,7 @@
 import app from "./app";
+import { assertProductionConfig } from "./routes/portal-config";
+
+assertProductionConfig(); // refuse to start in production with missing or unsafe settings
 
 const rawPort = process.env["PORT"];
 

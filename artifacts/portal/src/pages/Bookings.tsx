@@ -35,7 +35,7 @@ export default function Bookings() {
           <p className="text-sm text-[var(--ink-soft)]">{data.data!.rows.length} booking{data.data!.rows.length === 1 ? "" : "s"}{data.data!.truncated ? " shown (there are more: narrow the dates or the room)" : ""}.</p>
           <Card className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="border-b border-[var(--line)] text-left text-xs uppercase tracking-wide text-[var(--ink-mute)]"><th className="px-4 py-2 font-medium">When</th><th className="px-4 py-2 font-medium">Room</th><th className="px-4 py-2 font-medium">Title</th><th className="px-4 py-2 font-medium">Booked by</th><th className="px-4 py-2" /></tr></thead>
+              <thead><tr className="border-b border-[var(--line)] text-left text-xs uppercase tracking-wide text-[var(--ink-mute)]"><th className="px-4 py-2 font-medium">When</th><th className="px-4 py-2 font-medium">Room</th><th className="px-4 py-2 font-medium">Title</th><th className="px-4 py-2 font-medium">Booked by</th><th className="px-4 py-2"><span className="sr-only">Actions</span></th></tr></thead>
               <tbody>
                 {data.data!.rows.map((r) => (
                   <tr key={r.id} className="border-b border-[var(--line)] last:border-0 align-top">

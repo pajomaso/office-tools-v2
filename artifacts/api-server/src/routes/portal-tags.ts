@@ -1,13 +1,14 @@
 import { Router, type IRouter } from "express";
 import cookieParser from "cookie-parser";
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import {
   db, portalClientsTable, portalCompaniesTable, portalTagsTable, portalTagBatchesTable, portalTagChangesTable,
   portalTagLogTable, portalAdminSeenTable, portalSettingsTable,
 } from "@workspace/db";
 import { and, asc, desc, eq, gt, inArray, ne, sql } from "drizzle-orm";
 import { asyncRoute, managerGuard, type Authed } from "./portal";
-import { codeFingerprint, encryptCode, isValidCode } from "./portal-crypto";
+import { codeFingerprint, encryptCode, hashToken, isValidCode } from "./portal-crypto";
+import { publicBase } from "./portal-config";
 
 const router: IRouter = Router();
 router.use("/portal", cookieParser());
@@ -30,7 +31,7 @@ export const isUniqueViolation = (e: unknown) => { const x = e as { code?: strin
 // ── The secret link ─────────────────────────────────────────────────────────
 // 32 random bytes in the URL; only a SHA-256 hash is stored, so a database leak doesn't expose live links.
 export const newLinkToken = () => randomBytes(32).toString("base64url");
-export const hashToken = (t: string) => createHash("sha256").update(t).digest("hex");
+export { hashToken };
 
 export async function log(tx: Tx | typeof db, e: { tag?: Tag | null; tagNumber?: string; event: string; detail?: string; actor: string; bySupplier?: boolean; ip?: string | null }) {
   await tx.insert(portalTagLogTable).values({ tagId: e.tag?.id ?? null, tagNumber: e.tag?.number ?? e.tagNumber ?? "", event: e.event, detail: e.detail ?? "", actor: e.actor, bySupplier: !!e.bySupplier, ip: e.ip ?? null });
@@ -272,7 +273,7 @@ router.delete("/portal/admin/changes/:id", managerGuard, asyncRoute(async (req, 
   res.json({ ok: true });
 }));
 
-const linkFor = (origin: string, token: string) => `${process.env.PORTAL_URL || origin}/access/${token}`;
+const linkFor = (origin: string, token: string) => `${publicBase(origin)}/access/${token}`;
 const messageFor = (link: string) => `Ricardo, here's a new request: ${link}`;
 
 async function issueLink(tx: Tx, batchId: string, adminId: string) {

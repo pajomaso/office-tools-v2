@@ -31,10 +31,10 @@ export default function Access() {
   const err = one.error ?? all.error;
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] px-4 py-10">
+    <main className="min-h-screen bg-[var(--bg)] px-4 py-10">
       <meta name="robots" content="noindex, nofollow" />
       <div className="mx-auto w-full max-w-2xl">
-        <div className="mb-6 flex items-center gap-2 text-[var(--brand)]"><Square className="size-5 fill-current" /><span className="text-[17px] font-semibold tracking-tight text-[var(--ink)]">Office 42 · access tag request</span></div>
+        <h1 className="mb-6 flex items-center gap-2 text-[17px] font-semibold tracking-tight text-[var(--ink)]"><Square className="size-5 fill-current text-[var(--brand)]" aria-hidden="true" />Office 42 · access tag request</h1>
         {q.isLoading ? <p className="text-sm text-[var(--ink-mute)]">Loading…</p> : q.isError ? (
           <div role="alert" className="rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] p-5">
             <p className="font-semibold">This link doesn't work</p>
@@ -67,6 +67,6 @@ export default function Access() {
           </>
         )}
       </div>
-    </div>
+    </main>
   );
 }

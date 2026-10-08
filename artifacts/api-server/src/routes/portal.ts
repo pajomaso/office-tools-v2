@@ -1,7 +1,8 @@
 import { Router, type IRouter, type Request, type RequestHandler, type Response, type NextFunction } from "express";
 import { randomBytes } from "node:crypto";
 import cookieParser from "cookie-parser";
-import { PASSWORD_MAX, PASSWORD_MIN, hashPassword, verifyPassword } from "./portal-crypto";
+import { publicBase } from "./portal-config";
+import { PASSWORD_MAX, PASSWORD_MIN, hashPassword, hashToken, verifyPassword } from "./portal-crypto";
 import {
   db,
   portalClientsTable,
@@ -35,7 +36,7 @@ async function requireClient(req: Request, res: Response, next: NextFunction) {
         .select({ client: portalClientsTable, expiresAt: portalSessionsTable.expiresAt })
         .from(portalSessionsTable)
         .innerJoin(portalClientsTable, eq(portalClientsTable.id, portalSessionsTable.clientId))
-        .where(and(eq(portalSessionsTable.id, sid), gt(portalSessionsTable.expiresAt, new Date())));
+        .where(and(eq(portalSessionsTable.id, hashToken(sid)), gt(portalSessionsTable.expiresAt, new Date())));
       if (row) {
         (req as Authed).client = row.client;
         // "Fresh" = signed in within the last 15 minutes (e.g. via the emailed link), which lets someone who forgot their password set a new one.
@@ -62,26 +63,26 @@ router.post("/portal/auth/request", asyncRoute(async (req, res) => {
   // Same response for known and unknown emails, so addresses can't be enumerated.
   if (!client) { res.json({ ok: true }); return; }
   const t = token();
-  await db.insert(portalLoginTokensTable).values({ token: t, clientId: client.id, expiresAt: new Date(Date.now() + TOKEN_MINUTES * 60_000) });
-  const base = process.env.PORTAL_URL || String(req.body?.origin || "http://localhost:5174");
-  const link = `${base}/api/portal/auth/verify?token=${t}`;
-  // No mailer wired up yet: the link is logged, and returned to the browser outside production.
-  console.log(`[portal] sign-in link for ${email}: ${link}`);
+  await db.insert(portalLoginTokensTable).values({ token: hashToken(t), clientId: client.id, expiresAt: new Date(Date.now() + TOKEN_MINUTES * 60_000) });
+  const link = `${publicBase(req.body?.origin)}/api/portal/auth/verify?token=${t}`;
+  // No mailer wired up yet. Outside production the link is logged and returned to the browser so it can be tested locally.
+  // In production it must never reach the logs or the response: anyone who saw it could sign in as that person.
+  if (!isProd) console.log(`[portal] sign-in link for ${email}: ${link}`);
   res.json(isProd ? { ok: true } : { ok: true, devLink: link });
 }));
 
 async function startSession(res: Response, clientId: string) {
   const sid = token();
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000);
-  await db.insert(portalSessionsTable).values({ id: sid, clientId, expiresAt });
+  await db.insert(portalSessionsTable).values({ id: hashToken(sid), clientId, expiresAt }); // the cookie holds sid; only its hash is stored
   res.cookie(COOKIE, sid, { httpOnly: true, sameSite: "lax", secure: isProd, expires: expiresAt, path: "/" });
 }
 
 router.get("/portal/auth/verify", asyncRoute(async (req, res) => {
   const t = String(req.query.token ?? "");
-  const [row] = await db.select().from(portalLoginTokensTable).where(and(eq(portalLoginTokensTable.token, t), gt(portalLoginTokensTable.expiresAt, new Date())));
+  const [row] = await db.select().from(portalLoginTokensTable).where(and(eq(portalLoginTokensTable.token, hashToken(t)), gt(portalLoginTokensTable.expiresAt, new Date())));
   if (!row || row.usedAt) { res.redirect("/login?error=expired"); return; }
-  await db.update(portalLoginTokensTable).set({ usedAt: new Date() }).where(eq(portalLoginTokensTable.token, t));
+  await db.update(portalLoginTokensTable).set({ usedAt: new Date() }).where(eq(portalLoginTokensTable.token, hashToken(t)));
   await startSession(res, row.clientId);
   // An invite lands on the account page so the new person can choose a password (optional).
   res.redirect(row.purpose === "invite" ? "/app/account?welcome=1" : "/app");
@@ -122,13 +123,13 @@ router.post("/portal/auth/set-password", guard, asyncRoute(async (req, res) => {
   await db.update(portalClientsTable).set({ passwordHash: await hashPassword(password), failedLogins: 0, lockedUntil: null }).where(eq(portalClientsTable.id, me.id));
   // Sign out every other device.
   const sid = req.cookies?.[COOKIE];
-  await db.delete(portalSessionsTable).where(and(eq(portalSessionsTable.clientId, me.id), sid ? sql`${portalSessionsTable.id} <> ${sid}` : undefined));
+  await db.delete(portalSessionsTable).where(and(eq(portalSessionsTable.clientId, me.id), sid ? sql`${portalSessionsTable.id} <> ${hashToken(sid)}` : undefined));
   res.json({ ok: true });
 }));
 
 router.post("/portal/auth/logout", asyncRoute(async (req, res) => {
   const sid = req.cookies?.[COOKIE];
-  if (sid) await db.delete(portalSessionsTable).where(eq(portalSessionsTable.id, sid));
+  if (sid) await db.delete(portalSessionsTable).where(eq(portalSessionsTable.id, hashToken(sid)));
   res.clearCookie(COOKIE, { path: "/" });
   res.json({ ok: true });
 }));

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { codeFingerprint, decryptCode, encryptCode, hashPassword, isValidCode, verifyPassword } from "./portal-crypto";
+import { codeFingerprint, decryptCode, encryptCode, hashPassword, hashToken, isValidCode, verifyPassword } from "./portal-crypto";
 
 test("passwords: right one passes, wrong one and missing account fail, hash isn't the password", async () => {
   const h = await hashPassword("correct horse battery");
@@ -24,4 +24,12 @@ test("door codes: round-trip, never stored readable, same code gives same finger
 test("a code is exactly 4 digits", () => {
   for (const ok of ["0000", "1234", "9999"]) assert.equal(isValidCode(ok), true);
   for (const bad of ["123", "12345", "12a4", "", " 123", 1234, null]) assert.equal(isValidCode(bad), false);
+});
+
+test("secret tokens are stored as a hash: same input same hash, never the input", () => {
+  const raw = "Zk3-sample-token_value";
+  assert.equal(hashToken(raw), hashToken(raw));
+  assert.equal(hashToken(raw).length, 64);
+  assert.ok(!hashToken(raw).includes(raw));
+  assert.notEqual(hashToken(raw), hashToken(raw + "x"));
 });

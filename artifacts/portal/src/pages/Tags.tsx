@@ -196,7 +196,7 @@ export default function Tags() {
             <h2 className="mb-2 text-sm font-semibold">All tags ({data.data?.tags.length ?? 0})</h2>
             <Card className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead><tr className="border-b border-[var(--line)] text-left text-xs uppercase tracking-wide text-[var(--ink-mute)]"><th className="px-4 py-2 font-medium">Tag</th><th className="px-4 py-2 font-medium">Registered to</th><th className="px-4 py-2 font-medium">Status</th><th className="px-4 py-2 font-medium">Level</th><th className="px-4 py-2 font-medium">Company</th><th className="px-4 py-2 font-medium">Code</th><th className="px-4 py-2" /></tr></thead>
+                <thead><tr className="border-b border-[var(--line)] text-left text-xs uppercase tracking-wide text-[var(--ink-mute)]"><th className="px-4 py-2 font-medium">Tag</th><th className="px-4 py-2 font-medium">Registered to</th><th className="px-4 py-2 font-medium">Status</th><th className="px-4 py-2 font-medium">Level</th><th className="px-4 py-2 font-medium">Company</th><th className="px-4 py-2 font-medium">Code</th><th className="px-4 py-2"><span className="sr-only">Actions</span></th></tr></thead>
                 <tbody>
                   {data.data?.tags.map((t) => (
                     <tr key={t.id} className="border-b border-[var(--line)] last:border-0 align-top">

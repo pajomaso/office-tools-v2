@@ -179,8 +179,7 @@ export default function Home({ me }: { me: Me }) {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader title={`Hello, ${me.name.split(" ")[0]}`} subtitle={fmtDay(today, { weekday: "long", day: "numeric", month: "long" })}
-        actions={<Button onClick={() => bookNow()} disabled={!rooms.data?.length}><Plus className="size-4" />Book a room</Button>} />
+      <PageHeader title={`Hello, ${me.name.split(" ")[0]}`} subtitle={fmtDay(today, { weekday: "long", day: "numeric", month: "long" })} />
 
       <section aria-label="Today's room bookings">
         <div className="mb-2 flex items-center justify-between"><h2 className="text-sm font-semibold">Today's room bookings</h2><Link href="/app/rooms" className="text-xs font-medium text-[var(--brand)] hover:underline">Open calendar →</Link></div>

@@ -46,7 +46,7 @@ router.get("/portal/posts", guard, asyncRoute(async (req, res) => {
   const rows = await db.select({ p: portalPostsTable, author: portalClientsTable.name })
     .from(portalPostsTable).innerJoin(portalClientsTable, eq(portalClientsTable.id, portalPostsTable.authorId))
     .orderBy(desc(portalPostsTable.createdAt)).limit(50);
-  res.json(rows.map(({ p, author }) => ({ id: p.id, body: p.body, createdAt: p.createdAt, author, mine: p.authorId === me.id, canDelete: p.authorId === me.id || me.role === "manager" })));
+  res.json(rows.map(({ p, author }) => ({ id: p.id, body: p.body, createdAt: p.createdAt, author, mine: p.authorId === me.id, canDelete: p.authorId === me.id || me.role === "admin" })));
 }));
 
 router.post("/portal/posts", guard, asyncRoute(async (req, res) => {
@@ -65,7 +65,7 @@ router.delete("/portal/posts/:id", guard, asyncRoute(async (req, res) => {
   const me = (req as Authed).client;
   const id = String(req.params.id);
   if (!UUID.test(id)) { bad(res, 404, "Post not found."); return; }
-  const rows = await db.delete(portalPostsTable).where(and(eq(portalPostsTable.id, id), me.role === "manager" ? undefined : eq(portalPostsTable.authorId, me.id))).returning({ id: portalPostsTable.id });
+  const rows = await db.delete(portalPostsTable).where(and(eq(portalPostsTable.id, id), me.role === "admin" ? undefined : eq(portalPostsTable.authorId, me.id))).returning({ id: portalPostsTable.id });
   if (!rows.length) { bad(res, 404, "Post not found."); return; }
   res.json({ ok: true });
 }));

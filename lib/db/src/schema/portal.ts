@@ -1,22 +1,23 @@
-import { pgTable, uuid, text, integer, boolean, timestamp, jsonb, unique, customType } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, boolean, timestamp, jsonb, unique } from "drizzle-orm/pg-core";
 
-const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => "bytea" });
 
+export const portalCompaniesTable = pgTable("portal_companies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull().unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Everyone who uses the office. "role" is "user" or "admin" (several admins are fine, all equal).
 export const portalClientsTable = pgTable("portal_clients", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
-  plan: text("plan").notNull().default("Members"),
-  // Monthly allowances. null = unlimited (e.g. the Subvisual team).
-  deskDaysPerMonth: integer("desk_days_per_month"),
-  roomDaysPerMonth: integer("room_days_per_month"),
-  role: text("role").notNull().default("client"), // "client" | "manager"
-  // Billing record (invoices are issued manually; the portal only stores the details and the PDFs).
-  legalName: text("legal_name"),
-  vatNumber: text("vat_number"),
-  billingAddress: text("billing_address"),
-  billingContact: text("billing_contact"),
-  priceCents: integer("price_cents"), // monthly price; null = not billed (e.g. the Subvisual team)
+  role: text("role").notNull().default("user"), // "user" | "admin"
+  companyId: uuid("company_id").references(() => portalCompaniesTable.id, { onDelete: "set null" }),
+  kind: text("kind").notNull().default("company"), // "company" | "event" (clients, meetups, one-off events)
+  passwordHash: text("password_hash"), // scrypt hash; null = magic link only
+  failedLogins: integer("failed_logins").notNull().default(0),
+  lockedUntil: timestamp("locked_until"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -45,6 +46,7 @@ export const portalLoginTokensTable = pgTable("portal_login_tokens", {
   clientId: uuid("client_id").notNull().references(() => portalClientsTable.id, { onDelete: "cascade" }),
   expiresAt: timestamp("expires_at").notNull(),
   usedAt: timestamp("used_at"),
+  purpose: text("purpose").notNull().default("login"), // "login" (15 min) | "invite" (7 days)
 });
 
 export const portalSessionsTable = pgTable("portal_sessions", {
@@ -57,18 +59,6 @@ export const portalSettingsTable = pgTable("portal_settings", {
   key: text("key").primaryKey(),
   value: jsonb("value").notNull(),
 });
-
-// Hot desks: a booking is a seat for a day, not a specific desk.
-export const portalDeskBookingsTable = pgTable(
-  "portal_desk_bookings",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    clientId: uuid("client_id").notNull().references(() => portalClientsTable.id, { onDelete: "cascade" }),
-    date: text("date").notNull(), // YYYY-MM-DD, Europe/Lisbon calendar day
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-  },
-  (t) => [unique("portal_desk_client_date").on(t.clientId, t.date)],
-);
 
 // Issues ("something is broken") and supply requests ("something is missing").
 export const portalReportsTable = pgTable("portal_reports", {
@@ -90,7 +80,10 @@ export const portalTagsTable = pgTable("portal_tags", {
   number: text("number").notNull().unique(),
   clientId: uuid("client_id").references(() => portalClientsTable.id, { onDelete: "set null" }),
   access: text("access").notNull().default(""),
-  status: text("status").notNull().default("active"), // "active" | "lost" | "disabled"
+  status: text("status").notNull().default("active"), // "active" | "spare" | "lost" | "blocked" | "pending"
+  // 4-digit door code: encrypted (so the owner can see it) + a fingerprint (so two tags can never share one).
+  codeEnc: text("code_enc"),
+  codeFp: text("code_fp").unique(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -106,21 +99,6 @@ export const portalTagRequestsTable = pgTable("portal_tag_requests", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
-
-export const portalInvoicesTable = pgTable(
-  "portal_invoices",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    clientId: uuid("client_id").notNull().references(() => portalClientsTable.id, { onDelete: "cascade" }),
-    period: text("period").notNull(), // YYYY-MM
-    number: text("number").notNull().default(""),
-    amountCents: integer("amount_cents"),
-    filename: text("filename").notNull(),
-    data: bytea("data").notNull(),
-    uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
-  },
-  (t) => [unique("portal_invoice_client_period_number").on(t.clientId, t.period, t.number)],
-);
 
 // Phase 3 — community. Announcements: manager -> everyone. Board: everyone -> everyone.
 export const portalAnnouncementsTable = pgTable("portal_announcements", {
@@ -139,14 +117,3 @@ export const portalPostsTable = pgTable("portal_posts", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Public page: prospective tenants signal interest without commitment.
-export const portalLeadsTable = pgTable("portal_leads", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(),
-  email: text("email").notNull(),
-  company: text("company").notNull().default(""),
-  interest: text("interest").notNull().default("other"), // "desk" | "room" | "other"
-  message: text("message").notNull().default(""),
-  status: text("status").notNull().default("new"), // "new" | "contacted"
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});

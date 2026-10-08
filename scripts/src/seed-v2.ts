@@ -1,9 +1,8 @@
 // Fake data for LOCAL development of office tool v2. Wipes the portal tables first.
 // Refuses to run unless DATABASE_URL points at this machine, so it can never touch production.
 import {
-  db, portalClientsTable, portalRoomsTable, portalSettingsTable, portalTagsTable, portalBookingsTable,
-  portalDeskBookingsTable, portalReportsTable, portalTagRequestsTable, portalInvoicesTable,
-  portalAnnouncementsTable, portalPostsTable, portalLeadsTable, portalSessionsTable, portalLoginTokensTable,
+  db, portalClientsTable, portalCompaniesTable, portalRoomsTable, portalSettingsTable, portalTagsTable, portalBookingsTable,
+  portalReportsTable, portalTagRequestsTable, portalAnnouncementsTable, portalPostsTable, portalSessionsTable, portalLoginTokensTable,
 } from "@workspace/db";
 
 const host = (() => { try { return new URL(process.env.DATABASE_URL ?? "").hostname; } catch { return ""; } })();
@@ -14,8 +13,8 @@ if (!["localhost", "127.0.0.1", "[::1]", "::1"].includes(host)) {
 
 async function main() {
   console.log("Seeding v2 fake data (local only)…");
-  for (const t of [portalSessionsTable, portalLoginTokensTable, portalInvoicesTable, portalTagRequestsTable, portalReportsTable, portalAnnouncementsTable,
-    portalPostsTable, portalLeadsTable, portalDeskBookingsTable, portalBookingsTable, portalTagsTable, portalSettingsTable, portalRoomsTable, portalClientsTable]) {
+  for (const t of [portalSessionsTable, portalLoginTokensTable, portalTagRequestsTable, portalReportsTable, portalAnnouncementsTable,
+    portalPostsTable, portalBookingsTable, portalTagsTable, portalSettingsTable, portalRoomsTable, portalClientsTable, portalCompaniesTable]) {
     await db.delete(t);
   }
 
@@ -25,15 +24,16 @@ async function main() {
     { name: "Charlie", seats: 6, color: "#D97706", sortOrder: 2 },
   ]);
 
-  // The company is kept in the "plan" text for now; a real company field comes with the users/login step.
+  const [subvisual, norte] = await db.insert(portalCompaniesTable).values([{ name: "Subvisual" }, { name: "Studio Norte" }]).returning();
   const people = [
-    { email: "admin1@example.test", name: "Admin One", plan: "Subvisual", role: "manager" },
-    { email: "admin2@example.test", name: "Admin Two", plan: "Subvisual", role: "manager" },
-    { email: "admin3@example.test", name: "Admin Three", plan: "Subvisual", role: "manager" },
-    { email: "ana@example.test", name: "Ana Costa", plan: "Subvisual", role: "client" },
-    { email: "bruno@example.test", name: "Bruno Lima", plan: "Subvisual", role: "client" },
-    { email: "carla@example.test", name: "Carla Dias", plan: "Studio Norte", role: "client" },
-    { email: "diogo@example.test", name: "Diogo Reis", plan: "Studio Norte", role: "client" },
+    { email: "admin1@example.test", name: "Admin One", companyId: subvisual!.id, role: "admin" },
+    { email: "admin2@example.test", name: "Admin Two", companyId: subvisual!.id, role: "admin" },
+    { email: "admin3@example.test", name: "Admin Three", companyId: subvisual!.id, role: "admin" },
+    { email: "ana@example.test", name: "Ana Costa", companyId: subvisual!.id, role: "user" },
+    { email: "bruno@example.test", name: "Bruno Lima", companyId: subvisual!.id, role: "user" },
+    { email: "carla@example.test", name: "Carla Dias", companyId: norte!.id, role: "user" },
+    { email: "diogo@example.test", name: "Diogo Reis", companyId: norte!.id, role: "user" },
+    { email: "guest@example.test", name: "Event Guest", companyId: null, role: "user", kind: "event" },
   ];
   const clients = await db.insert(portalClientsTable).values(people).returning();
   const by = (email: string) => clients.find((c) => c.email === email)!.id;
@@ -59,7 +59,7 @@ async function main() {
     { key: "wifi", value: [{ label: "Guest WiFi", visibility: "Public", ssid: "Office-Guest", password: "", note: "Share freely with visitors." }] },
     { key: "videos", value: [] },
   ]);
-  console.log("  3 rooms, 7 users (3 admins, 2 companies), 10 tags. Sign in as admin1@example.test (link is shown on screen locally).");
+  console.log("  3 rooms, 8 users (3 admins, 2 companies, 1 event guest), 10 tags. Sign in as admin1@example.test (link is shown on screen locally).");
   process.exit(0);
 }
 main();

@@ -84,6 +84,18 @@ export const portalSettingsTable = pgTable("portal_settings", {
   value: jsonb("value").notNull(),
 });
 
+// Suppliers the admins call when handling an issue (electrician, cleaning, IT...). Not the tag supplier, who has his own page.
+export const portalSuppliersTable = pgTable("portal_suppliers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  what: text("what").notNull().default(""), // what they do
+  contactName: text("contact_name").notNull().default(""),
+  phone: text("phone").notNull().default(""),
+  email: text("email").notNull().default(""),
+  notes: text("notes").notNull().default(""),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Issues ("something is broken") and supply requests ("something is missing").
 // Issues ("something is broken") and requests ("I need something"). Public ones can be followed by everyone;
 // private ones are seen only by the author and admins. Admins claim them and leave a short status note.
@@ -96,6 +108,7 @@ export const portalItemsTable = pgTable("portal_items", {
   visibility: text("visibility").notNull().default("public"), // "public" | "private"
   status: text("status").notNull().default("open"), // "open" | "claimed" | "done"
   claimedBy: uuid("claimed_by").references(() => portalClientsTable.id, { onDelete: "set null" }),
+  supplierId: uuid("supplier_id").references(() => portalSuppliersTable.id, { onDelete: "set null" }), // who we called about it
   statusNote: text("status_note").notNull().default(""),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

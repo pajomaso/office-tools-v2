@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import cookieParser from "cookie-parser";
-import { db, portalItemsTable, portalItemFollowsTable, portalClientsTable } from "@workspace/db";
+import { db, portalItemsTable, portalItemFollowsTable, portalClientsTable, portalSuppliersTable } from "@workspace/db";
 import { and, desc, eq, gte, inArray, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { asyncRoute, guard, managerGuard, type Authed } from "./portal";
@@ -16,16 +16,17 @@ const DONE_VISIBLE_DAYS = 30;
 const claimer = alias(portalClientsTable, "claimer");
 
 async function loadItems(me: Authed["client"], where?: ReturnType<typeof and>) {
-  const rows = await db.select({ i: portalItemsTable, author: portalClientsTable.name, claimedByName: claimer.name })
+  const rows = await db.select({ i: portalItemsTable, author: portalClientsTable.name, claimedByName: claimer.name, supplierName: portalSuppliersTable.name })
     .from(portalItemsTable)
     .innerJoin(portalClientsTable, eq(portalClientsTable.id, portalItemsTable.authorId))
     .leftJoin(claimer, eq(claimer.id, portalItemsTable.claimedBy))
+    .leftJoin(portalSuppliersTable, eq(portalSuppliersTable.id, portalItemsTable.supplierId))
     .where(where).orderBy(desc(portalItemsTable.createdAt)).limit(200);
   const ids = rows.map((r) => r.i.id);
   const follows = ids.length ? await db.select().from(portalItemFollowsTable).where(inArray(portalItemFollowsTable.itemId, ids)) : [];
-  return rows.map(({ i, author, claimedByName }) => ({
+  return rows.map(({ i, author, claimedByName, supplierName }) => ({
     id: i.id, kind: i.kind, title: i.title, body: i.body, visibility: i.visibility, status: i.status, statusNote: i.statusNote,
-    claimedBy: i.claimedBy, claimedByName, author, authorId: i.authorId, mine: i.authorId === me.id,
+    claimedBy: i.claimedBy, claimedByName, supplierId: i.supplierId, supplierName, author, authorId: i.authorId, mine: i.authorId === me.id,
     following: follows.some((f) => f.itemId === i.id && f.userId === me.id), followers: follows.filter((f) => f.itemId === i.id).length,
     createdAt: i.createdAt, updatedAt: i.updatedAt,
   }));
@@ -78,6 +79,10 @@ router.patch("/portal/admin/items/:id", managerGuard, asyncRoute(async (req, res
   const set: Partial<typeof portalItemsTable.$inferInsert> = { updatedAt: new Date() };
   if (b.status !== undefined) { if (!STATUSES.includes(b.status)) { bad(res, 400, "Unknown status."); return; } set.status = b.status; }
   if (b.statusNote !== undefined) set.statusNote = String(b.statusNote).slice(0, 300);
+  if (b.supplierId !== undefined) {
+    if (b.supplierId !== null && !UUID.test(String(b.supplierId))) { bad(res, 400, "Unknown supplier."); return; }
+    set.supplierId = b.supplierId === null ? null : String(b.supplierId);
+  }
   if (b.claim === true) { set.claimedBy = me.id; if (b.status === undefined) set.status = "claimed"; }
   if (b.claim === false) { set.claimedBy = null; if (b.status === undefined) set.status = "open"; }
   const [row] = await db.update(portalItemsTable).set(set).where(eq(portalItemsTable.id, id)).returning({ id: portalItemsTable.id });

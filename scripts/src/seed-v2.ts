@@ -2,7 +2,7 @@
 // Refuses to run unless DATABASE_URL points at this machine, so it can never touch production.
 import {
   db, portalClientsTable, portalCompaniesTable, portalRoomsTable, portalSettingsTable, portalTagsTable, portalBookingsTable,
-  portalItemsTable, portalItemFollowsTable, portalMessagesTable, portalBlocksTable, portalTagChangesTable, portalTagBatchesTable, portalTagLogTable, portalAdminSeenTable, portalSessionsTable, portalLoginTokensTable,
+  portalItemsTable, portalItemFollowsTable, portalSuppliersTable, portalMessagesTable, portalBlocksTable, portalTagChangesTable, portalTagBatchesTable, portalTagLogTable, portalAdminSeenTable, portalSessionsTable, portalLoginTokensTable,
 } from "@workspace/db";
 
 const host = (() => { try { return new URL(process.env.DATABASE_URL ?? "").hostname; } catch { return ""; } })();
@@ -13,7 +13,7 @@ if (!["localhost", "127.0.0.1", "[::1]", "::1"].includes(host)) {
 
 async function main() {
   console.log("Seeding v2 fake data (local only)…");
-  for (const t of [portalSessionsTable, portalLoginTokensTable, portalAdminSeenTable, portalTagLogTable, portalTagChangesTable, portalTagBatchesTable, portalItemFollowsTable, portalItemsTable, portalMessagesTable,
+  for (const t of [portalSessionsTable, portalLoginTokensTable, portalAdminSeenTable, portalTagLogTable, portalTagChangesTable, portalTagBatchesTable, portalItemFollowsTable, portalItemsTable, portalSuppliersTable, portalMessagesTable,
     portalBlocksTable, portalBookingsTable, portalTagsTable, portalSettingsTable, portalRoomsTable, portalClientsTable, portalCompaniesTable]) {
     await db.delete(t);
   }
@@ -71,16 +71,44 @@ async function main() {
     { authorId: by("ana@example.test"), body: "Anyone up for lunch at 13:00?", expiresAt: new Date(Date.now() + 7 * day) },
     { authorId: by("carla@example.test"), body: "Found a black umbrella in Charlie. It is on the shelf.", expiresAt: new Date(Date.now() - 2 * day) },
   ]);
+  const suppliers = await db.insert(portalSuppliersTable).values([
+    { name: "Fast Electric", what: "Electrician", contactName: "Rui (fake)", phone: "+351 000 000 001", email: "electric@example.test", notes: "Call before 17:00" },
+    { name: "Clean & Co", what: "Cleaning", contactName: "Marta (fake)", phone: "+351 000 000 002", email: "cleaning@example.test", notes: "" },
+    { name: "TechHelp", what: "IT, AV and projectors", contactName: "Paulo (fake)", phone: "+351 000 000 003", email: "it@example.test", notes: "Support contract until December" },
+  ]).returning();
   const items = await db.insert(portalItemsTable).values([
-    { authorId: by("ana@example.test"), kind: "issue", visibility: "public", title: "Projector in Alfa won't turn on", body: "Tried two remotes." },
+    { authorId: by("ana@example.test"), kind: "issue", visibility: "public", title: "Projector in Alfa won't turn on", body: "Tried two remotes.", supplierId: suppliers[2]!.id },
     { authorId: by("carla@example.test"), kind: "request", visibility: "public", title: "More coffee capsules", status: "claimed", claimedBy: by("admin2@example.test"), statusNote: "Ordered, arrives Friday" },
     { authorId: by("diogo@example.test"), kind: "request", visibility: "private", title: "Second monitor for my desk" },
   ]).returning();
   await db.insert(portalItemFollowsTable).values(items.map((i) => ({ itemId: i.id, userId: i.authorId })));
   // Whole half hours, like the booking form produces.
   const at = (h: number) => new Date(Math.round((Date.now() + h * hour) / (30 * 60_000)) * 30 * 60_000);
+  // About a year of fake bookings so the history and the metrics have something to show (deterministic, so reruns match).
+  let seed = 12345;
+  const rnd = () => { seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const titles = ["Weekly sync", "Client call", "Design review", "Interview", "Workshop", "1:1", "Planning", "Demo"];
+  const bookers = ["ana", "bruno", "carla", "diogo", "admin1", "admin2"].map((n) => by(`${n}@example.test`));
+  const hist: (typeof portalBookingsTable.$inferInsert)[] = [];
+  const day0 = new Date(); day0.setUTCHours(0, 0, 0, 0);
+  for (let back = 365; back >= -21; back--) {
+    const d = new Date(+day0 - back * day);
+    if ([0, 6].includes(d.getUTCDay())) continue;
+    const busy = 0.3 + 0.35 * Math.sin((back / 365) * Math.PI * 2 + 1) ** 2; // some seasonality
+    for (const room of rooms) {
+      let cursor = 8 + Math.floor(rnd() * 3); // hour of day in UTC (roughly 9-11 in Braga)
+      while (cursor < 16 && rnd() < busy) {
+        const len = [1, 1, 1.5, 2][Math.floor(rnd() * 4)]!;
+        const start = new Date(+d + cursor * hour);
+        hist.push({ roomId: room.id, clientId: bookers[Math.floor(rnd() * bookers.length)]!, title: titles[Math.floor(rnd() * titles.length)]!, startsAt: start, endsAt: new Date(+start + len * hour) });
+        cursor += len + Math.floor(rnd() * 3);
+      }
+    }
+  }
+  await db.insert(portalBookingsTable).values(hist);
   await db.insert(portalBookingsTable).values({ roomId: rooms[0]!.id, clientId: by("ana@example.test"), title: "Client call", bookedFor: "Rui (client)", startsAt: at(24), endsAt: at(25) });
   await db.insert(portalBlocksTable).values({ roomId: null, kind: "cleaning", title: "Weekly cleaning", startsAt: at(48), endsAt: at(49), createdBy: by("admin1@example.test") });
+  console.log(`  ${hist.length} fake bookings over a year.`);
   console.log("  3 rooms, 8 users (3 admins, 2 companies, 1 event guest), 10 tags. Sign in as admin1@example.test (link is shown on screen locally).");
   process.exit(0);
 }

@@ -17,6 +17,9 @@ import portalRoomsRouter from "./portal-rooms";
 import portalAreaRouter from "./portal-area";
 import portalTagsRouter from "./portal-tags";
 import portalSupplierRouter from "./portal-supplier";
+import portalMetricsRouter from "./portal-metrics";
+import portalSuppliersRouter from "./portal-suppliers";
+import portalSettingsRouter from "./portal-settings";
 
 const router: IRouter = Router();
 
@@ -38,5 +41,8 @@ router.use(portalRoomsRouter);
 router.use(portalAreaRouter);
 router.use(portalTagsRouter);
 router.use(portalSupplierRouter);
+router.use(portalMetricsRouter);
+router.use(portalSuppliersRouter);
+router.use(portalSettingsRouter);
 
 export default router;

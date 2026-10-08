@@ -15,6 +15,8 @@ import portalItemsRouter from "./portal-items";
 import portalMessagesRouter from "./portal-messages";
 import portalRoomsRouter from "./portal-rooms";
 import portalAreaRouter from "./portal-area";
+import portalTagsRouter from "./portal-tags";
+import portalSupplierRouter from "./portal-supplier";
 
 const router: IRouter = Router();
 
@@ -34,5 +36,7 @@ router.use(portalItemsRouter);
 router.use(portalMessagesRouter);
 router.use(portalRoomsRouter);
 router.use(portalAreaRouter);
+router.use(portalTagsRouter);
+router.use(portalSupplierRouter);
 
 export default router;

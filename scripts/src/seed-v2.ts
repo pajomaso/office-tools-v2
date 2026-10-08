@@ -2,7 +2,7 @@
 // Refuses to run unless DATABASE_URL points at this machine, so it can never touch production.
 import {
   db, portalClientsTable, portalCompaniesTable, portalRoomsTable, portalSettingsTable, portalTagsTable, portalBookingsTable,
-  portalItemsTable, portalItemFollowsTable, portalMessagesTable, portalBlocksTable, portalTagRequestsTable, portalSessionsTable, portalLoginTokensTable,
+  portalItemsTable, portalItemFollowsTable, portalMessagesTable, portalBlocksTable, portalTagChangesTable, portalTagBatchesTable, portalTagLogTable, portalAdminSeenTable, portalSessionsTable, portalLoginTokensTable,
 } from "@workspace/db";
 
 const host = (() => { try { return new URL(process.env.DATABASE_URL ?? "").hostname; } catch { return ""; } })();
@@ -13,7 +13,7 @@ if (!["localhost", "127.0.0.1", "[::1]", "::1"].includes(host)) {
 
 async function main() {
   console.log("Seeding v2 fake data (local only)…");
-  for (const t of [portalSessionsTable, portalLoginTokensTable, portalTagRequestsTable, portalItemFollowsTable, portalItemsTable, portalMessagesTable,
+  for (const t of [portalSessionsTable, portalLoginTokensTable, portalAdminSeenTable, portalTagLogTable, portalTagChangesTable, portalTagBatchesTable, portalItemFollowsTable, portalItemsTable, portalMessagesTable,
     portalBlocksTable, portalBookingsTable, portalTagsTable, portalSettingsTable, portalRoomsTable, portalClientsTable, portalCompaniesTable]) {
     await db.delete(t);
   }
@@ -38,21 +38,23 @@ async function main() {
   const clients = await db.insert(portalClientsTable).values(people).returning();
   const by = (email: string) => clients.find((c) => c.email === email)!.id;
 
-  // Fake tag numbers only. No access codes anywhere (they don't exist in the schema yet).
-  await db.insert(portalTagsTable).values([
-    { number: "T-001", clientId: by("admin1@example.test"), status: "active" },
-    { number: "T-002", clientId: by("admin2@example.test"), status: "active" },
-    { number: "T-003", clientId: by("ana@example.test"), status: "active" },
-    { number: "T-004", clientId: by("carla@example.test"), status: "active" },
-    { number: "T-005", clientId: by("diogo@example.test"), status: "active" },
-    { number: "T-006", clientId: null, status: "spare" },
-    { number: "T-007", clientId: null, status: "spare" },
-    { number: "T-008", clientId: null, status: "lost" },
-    { number: "T-009", clientId: null, status: "blocked" },
-    { number: "T-010", clientId: null, status: "pending" }, // assigned to Bruno once the supplier confirms (see the request below)
-  ]);
-
-  await db.insert(portalTagRequestsTable).values({ clientId: by("bruno@example.test"), kind: "new", newTagNumber: "T-010", note: "Onboarding" });
+  // Fake tag numbers only. No access codes anywhere. holderName is the name registered at the supplier.
+  const co = (n: string) => (n === "norte" ? norte!.id : subvisual!.id);
+  const tagRows = await db.insert(portalTagsTable).values([
+    { number: "T-001", clientId: by("admin1@example.test"), holderName: "Admin One", status: "active", accessLevel: "administrator", companyId: co("sv") },
+    { number: "T-002", clientId: by("admin2@example.test"), holderName: "Admin Two", status: "active", accessLevel: "administrator", companyId: co("sv") },
+    { number: "T-003", clientId: by("ana@example.test"), holderName: "Ana Costa", status: "active", companyId: co("sv") },
+    { number: "T-004", clientId: by("carla@example.test"), holderName: "Carla Dias", status: "active", companyId: co("norte") },
+    { number: "T-005", clientId: by("diogo@example.test"), holderName: "Diogo Reis", status: "active", companyId: co("norte") },
+    { number: "T-006", status: "spare" },
+    { number: "T-007", status: "spare" },
+    { number: "T-008", status: "lost", note: "Lost in September" },
+    { number: "T-009", status: "blocked", accessLevel: "service", note: "Cleaning service" },
+    { number: "T-010", status: "spare" },
+  ]).returning();
+  // Bruno's tag is waiting for the supplier: a line in the open batch, while the tag still shows its old state.
+  const [batch] = await db.insert(portalTagBatchesTable).values({ status: "open", createdBy: by("admin1@example.test") }).returning();
+  await db.insert(portalTagChangesTable).values({ batchId: batch!.id, tagId: tagRows.find((t) => t.number === "T-010")!.id, kind: "assign", toUserId: by("bruno@example.test"), toName: "Bruno Lima", note: "Onboarding", createdBy: by("admin1@example.test") });
 
   await db.insert(portalSettingsTable).values([
     { key: "capacity", value: 10 },

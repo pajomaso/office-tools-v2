@@ -1,4 +1,5 @@
-import { pgTable, uuid, text, integer, boolean, timestamp, jsonb, unique, primaryKey, customType } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, boolean, timestamp, jsonb, unique, uniqueIndex, primaryKey, customType } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => "bytea" });
 
@@ -105,30 +106,75 @@ export const portalItemFollowsTable = pgTable("portal_item_follows", {
   userId: uuid("user_id").notNull().references(() => portalClientsTable.id, { onDelete: "cascade" }),
 }, (t) => [primaryKey({ columns: [t.itemId, t.userId] })]);
 
-// Access tags. The supplier is contacted by email; this table is the source of truth.
+// Access tags. The supplier (Ricardo) is told about changes in batches; this table is the source of truth.
+// "pending" is not stored: a tag shows as pending while it has an unfinished change line.
 export const portalTagsTable = pgTable("portal_tags", {
   id: uuid("id").primaryKey().defaultRandom(),
   number: text("number").notNull().unique(),
-  clientId: uuid("client_id").references(() => portalClientsTable.id, { onDelete: "set null" }),
-  access: text("access").notNull().default(""),
-  status: text("status").notNull().default("active"), // "active" | "spare" | "lost" | "blocked" | "pending"
-  // 4-digit door code: encrypted (so the owner can see it) + a fingerprint (so two tags can never share one).
+  clientId: uuid("client_id").references(() => portalClientsTable.id, { onDelete: "set null" }), // current owner
+  holderName: text("holder_name").notNull().default(""), // the name registered at the supplier (can lag behind until a change is done)
+  status: text("status").notNull().default("active"), // "active" | "spare" | "lost" | "blocked"
+  accessLevel: text("access_level").notNull().default("user"), // level in the supplier's system: "user" | "administrator" | "service"
+  companyId: uuid("company_id").references(() => portalCompaniesTable.id, { onDelete: "set null" }),
+  note: text("note").notNull().default(""),
+  // 4-digit door code: encrypted (so the owner can be shown it) + a fingerprint (so two tags can never share one).
   codeEnc: text("code_enc"),
   codeFp: text("code_fp").unique(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Request log: to_send -> sent -> confirmed (or rejected). The tag table only changes on confirmation.
-export const portalTagRequestsTable = pgTable("portal_tag_requests", {
+// A batch groups several changes into one request. Only one batch is open at a time; it stays open until an admin
+// sends it. Sending creates a secret link for the supplier; only a hash of the link is stored.
+export const portalTagBatchesTable = pgTable("portal_tag_batches", {
   id: uuid("id").primaryKey().defaultRandom(),
-  clientId: uuid("client_id").notNull().references(() => portalClientsTable.id, { onDelete: "cascade" }),
-  kind: text("kind").notNull(), // "new" | "replace" | "deactivate"
-  oldTagId: uuid("old_tag_id").references(() => portalTagsTable.id, { onDelete: "set null" }),
-  note: text("note").notNull().default(""),
-  status: text("status").notNull().default("to_send"), // "to_send" | "sent" | "confirmed" | "rejected"
-  newTagNumber: text("new_tag_number"),
+  status: text("status").notNull().default("open"), // "open" | "sent" | "done"
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  createdBy: uuid("created_by").references(() => portalClientsTable.id, { onDelete: "set null" }),
+  sentAt: timestamp("sent_at"),
+  sentBy: uuid("sent_by").references(() => portalClientsTable.id, { onDelete: "set null" }),
+  linkHash: text("link_hash").unique(),
+  linkExpiresAt: timestamp("link_expires_at"),
+  revokedAt: timestamp("revoked_at"),
+}, (t) => [uniqueIndex("portal_tag_batches_one_open").on(t.status).where(sql`${t.status} = 'open'`)]);
+
+export const portalTagChangesTable = pgTable("portal_tag_changes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  batchId: uuid("batch_id").notNull().references(() => portalTagBatchesTable.id, { onDelete: "cascade" }),
+  tagId: uuid("tag_id").notNull().references(() => portalTagsTable.id, { onDelete: "cascade" }),
+  kind: text("kind").notNull(), // "assign" | "reassign" | "rename" | "lost" | "return"
+  fromUserId: uuid("from_user_id").references(() => portalClientsTable.id, { onDelete: "set null" }),
+  toUserId: uuid("to_user_id").references(() => portalClientsTable.id, { onDelete: "set null" }),
+  fromName: text("from_name").notNull().default(""),
+  toName: text("to_name").notNull().default(""),
+  note: text("note").notNull().default(""),
+  status: text("status").notNull().default("pending"), // "pending" | "done" | "outdated" | "removed"
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdBy: uuid("created_by").references(() => portalClientsTable.id, { onDelete: "set null" }),
+  doneAt: timestamp("done_at"),
+  doneBy: text("done_by"), // "Ricardo" or an admin's name
+  doneIp: text("done_ip"),
+  // The tag as it was before the change was applied, so an admin can undo a mistaken "Done".
+  prevUserId: uuid("prev_user_id"),
+  prevStatus: text("prev_status"),
+  prevHolderName: text("prev_holder_name"),
+});
+
+export const portalTagLogTable = pgTable("portal_tag_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tagId: uuid("tag_id").references(() => portalTagsTable.id, { onDelete: "set null" }),
+  tagNumber: text("tag_number").notNull(),
+  event: text("event").notNull(),
+  detail: text("detail").notNull().default(""),
+  actor: text("actor").notNull(),
+  bySupplier: boolean("by_supplier").notNull().default(false),
+  ip: text("ip"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// When each admin last looked at the supplier's activity (drives the in-app notification).
+export const portalAdminSeenTable = pgTable("portal_admin_seen", {
+  adminId: uuid("admin_id").primaryKey().references(() => portalClientsTable.id, { onDelete: "cascade" }),
+  seenAt: timestamp("seen_at").notNull().defaultNow(),
 });
 
 // Messages: anyone posts, shown until they expire (1 week by default). Admins can pin and delete any.

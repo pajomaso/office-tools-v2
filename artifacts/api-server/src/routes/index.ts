@@ -9,6 +9,9 @@ import scheduledMaintenanceRouter from "./scheduled-maintenance";
 import uploadRouter from "./upload";
 import suggestionsRouter from "./suggestions";
 import authRouter from "./auth";
+import portalRouter from "./portal";
+import portalAdminRouter from "./portal-admin";
+import portalCommunityRouter from "./portal-community";
 
 const router: IRouter = Router();
 
@@ -22,5 +25,8 @@ router.use(scheduledMaintenanceRouter);
 router.use(uploadRouter);
 router.use(suggestionsRouter);
 router.use(authRouter);
+router.use(portalRouter);
+router.use(portalAdminRouter);
+router.use(portalCommunityRouter);
 
 export default router;

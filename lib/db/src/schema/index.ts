@@ -6,3 +6,4 @@ export * from "./vendors";
 export * from "./scheduled-maintenance";
 export * from "./suggestions";
 export * from "./settings";
+export * from "./portal";

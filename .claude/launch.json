@@ -4,8 +4,38 @@
     {
       "name": "ptc-site",
       "runtimeExecutable": "/bin/bash",
-      "runtimeArgs": ["-c", "export PATH=\"/Users/paulo/Library/Application Support/com.raycast.macos/NodeJS/runtime/20.9.0/bin:/Users/paulo/.local/share/pnpm:$PATH\" && pnpm -F @workspace/ptc-site dev"],
+      "runtimeArgs": [
+        "-c",
+        "export PATH=\"/Users/paulo/Library/Application Support/com.raycast.macos/NodeJS/runtime/20.9.0/bin:/Users/paulo/.local/share/pnpm:$PATH\" && pnpm -F @workspace/ptc-site dev"
+      ],
       "port": 5003
+    },
+    {
+      "name": "api-server",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": [
+        "-c",
+        "export PATH=\"/usr/local/bin:/Users/paulo/.local/share/pnpm:$PATH\" && pnpm --filter @workspace/api-server run dev"
+      ],
+      "port": 8080
+    },
+    {
+      "name": "office-engine",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": [
+        "-c",
+        "export PATH=\"/usr/local/bin:/Users/paulo/.local/share/pnpm:$PATH\" && pnpm --filter @workspace/office-engine run dev"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "portal",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": [
+        "-c",
+        "export PATH=\"/usr/local/bin:/Users/paulo/.local/share/pnpm:$PATH\" && pnpm --filter @workspace/portal run dev"
+      ],
+      "port": 5174
     }
   ]
 }

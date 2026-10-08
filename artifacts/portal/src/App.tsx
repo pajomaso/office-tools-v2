@@ -6,7 +6,12 @@ import Login from "@/pages/Login";
 import Home from "@/pages/Home";
 import Rooms from "@/pages/Rooms";
 import MePage from "@/pages/Me";
-import Inbox from "@/pages/Inbox";
+import Dashboard from "@/pages/Dashboard";
+import Issues from "@/pages/Issues";
+import Bookings from "@/pages/Bookings";
+import MetricsPage from "@/pages/Metrics";
+import Suppliers from "@/pages/Suppliers";
+import Settings from "@/pages/Settings";
 import Tags from "@/pages/Tags";
 import Users from "@/pages/Users";
 import Account from "@/pages/Account";
@@ -23,7 +28,13 @@ function Authed() {
         <Route path="/app/rooms"><Rooms me={me} /></Route>
         <Route path="/app/me"><MePage me={me} /></Route>
         <Route path="/app/account"><Account me={me} /></Route>
-        {me.role === "admin" && <Route path="/app/inbox"><Inbox me={me} /></Route>}
+        {me.role === "admin" && <Route path="/app/dashboard"><Dashboard me={me} /></Route>}
+        {me.role === "admin" && <Route path="/app/issues"><Issues me={me} /></Route>}
+        {me.role === "admin" && <Route path="/app/bookings" component={Bookings} />}
+        {me.role === "admin" && <Route path="/app/metrics" component={MetricsPage} />}
+        {me.role === "admin" && <Route path="/app/suppliers" component={Suppliers} />}
+        {me.role === "admin" && <Route path="/app/settings" component={Settings} />}
+        <Route path="/app/inbox"><Redirect to="/app/dashboard" /></Route>
         {me.role === "admin" && <Route path="/app/tags" component={Tags} />}
         {me.role === "admin" && <Route path="/app/users" component={Users} />}
         <Route><Redirect to="/app" /></Route>

@@ -29,7 +29,7 @@ export type Message = {
 export type Messages = { current: Message[]; past: Message[] };
 export type Item = {
   id: string; kind: "issue" | "request"; title: string; body: string; visibility: "public" | "private"; status: "open" | "claimed" | "done";
-  statusNote: string; claimedBy: string | null; claimedByName: string | null; author: string; authorId: string; mine: boolean;
+  statusNote: string; claimedBy: string | null; claimedByName: string | null; supplierId: string | null; supplierName: string | null; author: string; authorId: string; mine: boolean;
   following: boolean; followers: number; createdAt: string; updatedAt: string;
 };
 export type Area = {
@@ -63,3 +63,17 @@ export type Company = { id: string; name: string };
 export type MailPreview = { sent: boolean; preview: { to: string; subject: string; body: string }; devLink?: string };
 export type InboxCount = { pending: number; items: number; openTagLines: number; supplierUpdates: number };
 
+
+export type Supplier = { id: string; name: string; what: string; contactName: string; phone: string; email: string; notes: string };
+export type AdminBookingRow = { id: string; roomId: string; room: string; title: string; bookedFor: string | null; owner: string; notes: string; startsAt: string; endsAt: string; past: boolean };
+export type AdminBookings = { rows: AdminBookingRow[]; truncated: boolean; from: string; to: string };
+export type OccPoint = { key: string; label: string; booked: number; available: number; pct: number };
+export type Window = { startHour: number; endHour: number; weekdays: number[] };
+export type Metrics = {
+  granularity: "week" | "month"; window: Window; today: string; currentKey: string; range: { from: string; to: string };
+  rooms: { id: string; name: string; color: string }[]; overall: OccPoint[]; byRoom: Record<string, OccPoint[]>;
+  peak: { overall: number[]; byRoom: Record<string, number[]>; top: { hour: number; booked: number }[] };
+};
+export type Guide = { id: string; title: string; body: string };
+export type WifiNetwork = { label: string; visibility: "everyone" | "subvisual"; ssid: string; password: string; note: string };
+export type AdminSettings = { bookingNote: string; guides: Guide[]; wifi: WifiNetwork[]; occupancyWindow: Window; welcomeEmail: { subject: string; body: string } };

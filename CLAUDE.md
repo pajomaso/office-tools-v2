@@ -20,7 +20,7 @@ The spec replaces JTBD v6 where they differ. Anything marked `??` in it is uncon
 - Dev servers are defined in `.claude/launch.json` (`api-server`, `portal`).
 - Seed fake data: `pnpm --filter @workspace/scripts run seed:v2` (refuses to run unless the database is on localhost).
 - Schema: `pnpm --filter @workspace/db run push` (local only). If `drizzle-kit` asks about renames it hangs without a terminal; drop/rename columns by SQL first.
-- All tests: `pnpm run test` (timezone tests under 3 machine timezones + password/door-code tests). Timezone only: `pnpm run test:time` runs the booking-time tests with the machine set to 3 different timezones (must all pass).
+- All tests: `pnpm run test` (timezone and metrics tests under 3 machine timezones + password/door-code tests). Timezone only: `pnpm run test:time` runs the booking-time tests with the machine set to 3 different timezones (must all pass).
 - Check: `npx tsc -p artifacts/portal/tsconfig.json --noEmit` and the same in `artifacts/api-server` (filter for `portal`; `api-zod` errors predate this work).
 
 ## Notes

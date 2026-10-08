@@ -1,19 +1,15 @@
-import { Router, type IRouter, type RequestHandler } from "express";
+import { Router, type IRouter } from "express";
 import cookieParser from "cookie-parser";
-import multer from "multer";
 import {
   db,
   portalClientsTable,
   portalTagsTable,
   portalTagRequestsTable,
-  portalInvoicesTable,
   portalReportsTable,
   portalSettingsTable,
-  portalLeadsTable,
 } from "@workspace/db";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { asyncRoute, guard, managerGuard, type Authed } from "./portal";
-import { partsOf } from "./portal-time";
 
 const router: IRouter = Router();
 router.use("/portal", cookieParser());
@@ -145,114 +141,29 @@ router.post("/portal/admin/tag-requests/:id/reject", managerGuard, asyncRoute(as
   res.json({ ok: true });
 }));
 
-// ── Clients + billing record ────────────────────────────────────────────────
-const monthNow = () => partsOf(new Date()).month;
-
-async function invoicesDue() {
-  const month = monthNow();
-  const billed = await db.select({ id: portalClientsTable.id, name: portalClientsTable.name }).from(portalClientsTable).where(sql`${portalClientsTable.priceCents} is not null`);
-  const have = await db.select({ clientId: portalInvoicesTable.clientId }).from(portalInvoicesTable).where(eq(portalInvoicesTable.period, month));
-  const done = new Set(have.map((h) => h.clientId));
-  return billed.filter((c) => !done.has(c.id)).map((c) => ({ clientId: c.id, name: c.name, period: month }));
-}
-
-const optInt = (v: unknown) => (v === null || v === "" || v === undefined ? null : Number.isInteger(Number(v)) && Number(v) >= 0 ? Number(v) : NaN);
-const optText = (v: unknown) => (v === null || v === undefined ? null : String(v).trim().slice(0, 300) || null);
-
+// ── Clients (the user list; becomes "Users" with companies and invites later) ──
 router.get("/portal/admin/clients", managerGuard, asyncRoute(async (_req, res) => {
   const clients = await db.select().from(portalClientsTable).orderBy(asc(portalClientsTable.name));
   const tags = await db.select().from(portalTagsTable).where(eq(portalTagsTable.status, "active"));
-  const invs = await db.select({ id: portalInvoicesTable.id, clientId: portalInvoicesTable.clientId, period: portalInvoicesTable.period, number: portalInvoicesTable.number, amountCents: portalInvoicesTable.amountCents, filename: portalInvoicesTable.filename, uploadedAt: portalInvoicesTable.uploadedAt })
-    .from(portalInvoicesTable).orderBy(desc(portalInvoicesTable.period), desc(portalInvoicesTable.uploadedAt));
-  const due = new Set((await invoicesDue()).map((d) => d.clientId));
-  res.json(clients.map((c) => ({
-    ...c,
-    tag: tags.find((t) => t.clientId === c.id)?.number ?? null,
-    invoices: invs.filter((i) => i.clientId === c.id),
-    invoiceDue: due.has(c.id),
-  })));
+  res.json(clients.map((c) => ({ id: c.id, email: c.email, name: c.name, role: c.role, tag: tags.find((t) => t.clientId === c.id)?.number ?? null })));
 }));
 
 router.post("/portal/admin/clients", managerGuard, asyncRoute(async (req, res) => {
   const email = String(req.body?.email ?? "").trim().toLowerCase();
   const name = String(req.body?.name ?? "").trim();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !name) { bad(res, 400, "A name and a valid email are required."); return; }
-  const desk = optInt(req.body?.deskDaysPerMonth), room = optInt(req.body?.roomDaysPerMonth);
-  if (Number.isNaN(desk) || Number.isNaN(room)) { bad(res, 400, "Days must be whole numbers (or empty for no limit)."); return; }
   const [dupe] = await db.select({ id: portalClientsTable.id }).from(portalClientsTable).where(eq(portalClientsTable.email, email));
-  if (dupe) { bad(res, 409, "A client with that email already exists."); return; }
-  const [row] = await db.insert(portalClientsTable).values({ email, name, plan: String(req.body?.plan ?? "").trim() || "Members", deskDaysPerMonth: desk, roomDaysPerMonth: room }).returning();
+  if (dupe) { bad(res, 409, "A user with that email already exists."); return; }
+  const [row] = await db.insert(portalClientsTable).values({ email, name }).returning();
   res.status(201).json(row);
 }));
 
 router.patch("/portal/admin/clients/:id", managerGuard, asyncRoute(async (req, res) => {
-  const b = req.body ?? {};
-  const set: Partial<typeof portalClientsTable.$inferInsert> = {};
-  if ("name" in b) { const n = String(b.name).trim(); if (!n) { bad(res, 400, "Name can't be empty."); return; } set.name = n; }
-  if ("plan" in b) set.plan = String(b.plan).trim() || "Members";
-  for (const k of ["deskDaysPerMonth", "roomDaysPerMonth", "priceCents"] as const) {
-    if (k in b) { const v = optInt(b[k]); if (Number.isNaN(v)) { bad(res, 400, "Days and price must be whole, non-negative numbers."); return; } set[k] = v; }
-  }
-  for (const k of ["legalName", "vatNumber", "billingAddress", "billingContact"] as const) if (k in b) set[k] = optText(b[k]);
-  if (!Object.keys(set).length) { bad(res, 400, "Nothing to update."); return; }
-  const [row] = await db.update(portalClientsTable).set(set).where(eq(portalClientsTable.id, String(req.params.id))).returning();
-  if (!row) { bad(res, 404, "Client not found."); return; }
+  const name = String(req.body?.name ?? "").trim();
+  if (!name) { bad(res, 400, "Name can't be empty."); return; }
+  const [row] = await db.update(portalClientsTable).set({ name }).where(eq(portalClientsTable.id, String(req.params.id))).returning();
+  if (!row) { bad(res, 404, "User not found."); return; }
   res.json(row);
-}));
-
-// ── Invoices (issued manually elsewhere; PDFs are stored here) ──────────────
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024, files: 1 } });
-
-const uploadPdf: RequestHandler = (req, res, next) => {
-  upload.single("file")(req, res, (err?: unknown) => (err ? bad(res, 400, (err as { code?: string }).code === "LIMIT_FILE_SIZE" ? "The PDF is over 5 MB." : "Upload failed.") : next()));
-};
-
-router.post("/portal/admin/clients/:id/invoices", managerGuard, uploadPdf, asyncRoute(async (req, res) => {
-  const file = req.file;
-  const period = String(req.body?.period ?? "");
-  const number = String(req.body?.number ?? "").trim().slice(0, 60);
-  const amount = req.body?.amount === undefined || req.body.amount === "" ? null : Math.round(Number(String(req.body.amount).replace(",", ".")) * 100);
-  if (!file) { bad(res, 400, "Attach the invoice as a PDF."); return; }
-  if (file.buffer.subarray(0, 5).toString("latin1") !== "%PDF-") { bad(res, 400, "Only PDF files are accepted."); return; }
-  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(period)) { bad(res, 400, "Pick the invoice month."); return; }
-  if (amount !== null && (!Number.isFinite(amount) || amount < 0)) { bad(res, 400, "Amount must be a positive number."); return; }
-  const [client] = await db.select({ id: portalClientsTable.id }).from(portalClientsTable).where(eq(portalClientsTable.id, String(req.params.id)));
-  if (!client) { bad(res, 404, "Client not found."); return; }
-  const filename = (file.originalname.replace(/[^\w.\- ]+/g, "_").slice(0, 120) || "invoice.pdf");
-  try {
-    const [row] = await db.insert(portalInvoicesTable).values({ clientId: client.id, period, number, amountCents: amount, filename, data: file.buffer })
-      .returning({ id: portalInvoicesTable.id, period: portalInvoicesTable.period, number: portalInvoicesTable.number, filename: portalInvoicesTable.filename });
-    res.status(201).json(row);
-  } catch (e) {
-    const code = (e as { code?: string; cause?: { code?: string } });
-    if (code.code === "23505" || code.cause?.code === "23505") { bad(res, 409, "That invoice (month and number) is already uploaded."); return; }
-    throw e;
-  }
-}));
-
-router.delete("/portal/admin/invoices/:id", managerGuard, asyncRoute(async (req, res) => {
-  const rows = await db.delete(portalInvoicesTable).where(eq(portalInvoicesTable.id, String(req.params.id))).returning({ id: portalInvoicesTable.id });
-  if (!rows.length) { bad(res, 404, "Invoice not found."); return; }
-  res.json({ ok: true });
-}));
-
-// I7: a client sees and downloads their own invoices.
-router.get("/portal/invoices", guard, asyncRoute(async (req, res) => {
-  const me = (req as Authed).client;
-  res.json(await db.select({ id: portalInvoicesTable.id, period: portalInvoicesTable.period, number: portalInvoicesTable.number, amountCents: portalInvoicesTable.amountCents, filename: portalInvoicesTable.filename, uploadedAt: portalInvoicesTable.uploadedAt })
-    .from(portalInvoicesTable).where(eq(portalInvoicesTable.clientId, me.id)).orderBy(desc(portalInvoicesTable.period), desc(portalInvoicesTable.uploadedAt)));
-}));
-
-router.get("/portal/invoices/:id/file", guard, asyncRoute(async (req, res) => {
-  const me = (req as Authed).client;
-  const id = String(req.params.id);
-  if (!UUID.test(id)) { bad(res, 404, "Invoice not found."); return; }
-  const [inv] = await db.select().from(portalInvoicesTable).where(and(eq(portalInvoicesTable.id, id), me.role === "manager" ? undefined : eq(portalInvoicesTable.clientId, me.id)));
-  if (!inv) { bad(res, 404, "Invoice not found."); return; }
-  res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", `attachment; filename="${inv.filename.replace(/"/g, "")}"`);
-  res.setHeader("X-Content-Type-Options", "nosniff");
-  res.send(inv.data);
 }));
 
 // ── Inbox extras: everything that is waiting on the manager ─────────────────
@@ -261,16 +172,13 @@ router.get("/portal/inbox/todo", managerGuard, asyncRoute(async (_req, res) => {
     .from(portalTagRequestsTable).innerJoin(portalClientsTable, eq(portalClientsTable.id, portalTagRequestsTable.clientId))
     .leftJoin(portalTagsTable, eq(portalTagsTable.id, portalTagRequestsTable.oldTagId))
     .where(inArray(portalTagRequestsTable.status, OPEN_REQ)).orderBy(asc(portalTagRequestsTable.createdAt));
-  const [{ n: newLeads }] = await db.select({ n: sql<number>`count(*)::int` }).from(portalLeadsTable).where(eq(portalLeadsTable.status, "new"));
-  res.json({ tagRequests: reqs.map(({ r, client, oldNumber }) => ({ ...r, client, oldNumber })), invoicesDue: await invoicesDue(), newLeads });
+  res.json({ tagRequests: reqs.map(({ r, client, oldNumber }) => ({ ...r, client, oldNumber })) });
 }));
 
 router.get("/portal/inbox/count", managerGuard, asyncRoute(async (_req, res) => {
   const [{ n: reports }] = await db.select({ n: sql<number>`count(*)::int` }).from(portalReportsTable).where(inArray(portalReportsTable.status, ["open", "in_progress"]));
   const [{ n: tags }] = await db.select({ n: sql<number>`count(*)::int` }).from(portalTagRequestsTable).where(inArray(portalTagRequestsTable.status, OPEN_REQ));
-  const due = (await invoicesDue()).length;
-  const [{ n: leads }] = await db.select({ n: sql<number>`count(*)::int` }).from(portalLeadsTable).where(eq(portalLeadsTable.status, "new"));
-  res.json({ pending: reports + tags + due + leads });
+  res.json({ pending: reports + tags });
 }));
 
 export default router;

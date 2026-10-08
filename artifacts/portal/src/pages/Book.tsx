@@ -2,13 +2,13 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Plus, Users } from "lucide-react";
 import clsx from "clsx";
-import { api, type Booking, type Desks, type Room } from "@/lib/api";
+import { api, type Booking, type Room } from "@/lib/api";
 import { Button, Dialog, PageHeader, Skeleton, fieldInput, fieldLabel } from "@/components/ui";
 import { CLOSE, OPEN, addDays, fmtDay, hm, hourOf, isWeekend, lisbonToUtc, mondayOf, nextWorkday, plusHour, timeOptions, todayStr, ymd } from "@/lib/time";
 
 const ROW = 48; // px per hour
 type Draft = { date: string; start: string; end: string; roomId?: string };
-const refresh = (qc: ReturnType<typeof useQueryClient>) => ["bookings", "my-bookings", "summary", "desks"].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
+const refresh = (qc: ReturnType<typeof useQueryClient>) => ["bookings", "my-bookings", "summary"].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
 
 function BookingDialog({ rooms, draft, onClose }: { rooms: Room[]; draft: Draft; onClose: () => void }) {
   const qc = useQueryClient();
@@ -19,12 +19,11 @@ function BookingDialog({ rooms, draft, onClose }: { rooms: Room[]; draft: Draft;
   const [start, setStart] = useState(draft.start);
   const [end, setEnd] = useState(draft.end);
   const [notes, setNotes] = useState("");
-  const [alsoDesk, setAlsoDesk] = useState(true);
-  const room = rooms.find((r) => r.id === roomId);
+    const room = rooms.find((r) => r.id === roomId);
   const times = timeOptions();
 
   const create = useMutation({
-    mutationFn: () => api("/bookings", { method: "POST", json: { roomId, title, attendees, notes, date, start, end, alsoDesk } }),
+    mutationFn: () => api("/bookings", { method: "POST", json: { roomId, title, attendees, notes, date, start, end } }),
     onSuccess: () => { refresh(qc); onClose(); },
   });
 
@@ -65,10 +64,6 @@ function BookingDialog({ rooms, draft, onClose }: { rooms: Room[]; draft: Draft;
           <label className={fieldLabel} htmlFor="bk-notes">Notes (optional)</label>
           <textarea id="bk-notes" rows={2} className={clsx(fieldInput, "h-auto py-2")} placeholder="Anything we should know — coffee setup, materials, special guests…" value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
-        <label className="flex items-center gap-2 text-sm text-[var(--ink-soft)]">
-          <input type="checkbox" checked={alsoDesk} onChange={(e) => setAlsoDesk(e.target.checked)} className="size-4 accent-[var(--brand)]" />
-          Also reserve a desk seat that day
-        </label>
         <p className="text-xs text-[var(--ink-mute)]">Times are Braga time (Europe/Lisbon).</p>
         {create.isError && <p role="alert" className="text-sm text-[var(--danger)]">{create.error.message}</p>}
         <div className="flex justify-end gap-2">
@@ -135,50 +130,13 @@ function RoomWeek({ monday, rooms, roomFilter, bookings, onPick }: { monday: str
   );
 }
 
-function DeskWeek({ monday }: { monday: string }) {
-  const qc = useQueryClient();
-  const from = monday, to = addDays(monday, 4), today = todayStr();
-  const desks = useQuery({ queryKey: ["desks", from], queryFn: () => api<Desks>(`/desks?from=${from}&to=${to}`) });
-  const toggle = useMutation({
-    mutationFn: ({ date, has }: { date: string; has: boolean }) => api(has ? `/desks/${date}` : "/desks", has ? { method: "DELETE" } : { method: "POST", json: { date } }),
-    onSuccess: () => refresh(qc),
-  });
-  if (!desks.data) return <Skeleton className="h-48 w-full" />;
-  const cap = desks.data.capacity;
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-5">
-        {[0, 1, 2, 3, 4].map((i) => {
-          const d = addDays(monday, i);
-          const day = desks.data.days.find((x) => x.date === d);
-          const taken = day?.taken ?? 0, mine = !!day?.mine, full = taken >= cap, past = d < today;
-          return (
-            <div key={d} className={clsx("rounded-[var(--r-lg)] border bg-[var(--surface)] p-3.5", mine ? "border-[var(--brand)] ring-2 ring-[var(--brand)]/20" : "border-[var(--line)]", d === today && "bg-[var(--brand-soft)]/40")}>
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-mute)]">{fmtDay(d, { weekday: "short" })}</div>
-              <div className="tnum text-lg font-semibold">{fmtDay(d, { day: "2-digit", month: "short" })}</div>
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]"><div className="h-full bg-[var(--brand)]" style={{ width: `${Math.min(100, (taken / cap) * 100)}%` }} /></div>
-              <div className="tnum mt-1.5 text-xs text-[var(--ink-mute)]">{taken} of {cap} seats taken</div>
-              <Button className="mt-3 w-full" variant={mine ? "outline" : "primary"} disabled={past || (!mine && full) || toggle.isPending} onClick={() => toggle.mutate({ date: d, has: mine })}>
-                {mine ? "Cancel seat" : full ? "Full" : "Reserve"}
-              </Button>
-            </div>
-          );
-        })}
-      </div>
-      {toggle.isError && <p role="alert" className="text-sm text-[var(--danger)]">{toggle.error.message}</p>}
-      <p className="text-xs text-[var(--ink-mute)]">A seat is for the day, not a specific desk. Cancel until 10:00 on the day; after that it counts as a used day.</p>
-    </div>
-  );
-}
-
 export default function Book() {
-  const [tab, setTab] = useState<"rooms" | "desks">("rooms");
   const [week, setWeek] = useState(() => mondayOf(nextWorkday(todayStr())));
   const [roomFilter, setRoomFilter] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const rooms = useQuery({ queryKey: ["rooms"], queryFn: () => api<Room[]>("/rooms") });
   const from = lisbonToUtc(week, "00:00").toISOString(), to = lisbonToUtc(addDays(week, 5), "00:00").toISOString();
-  const bookings = useQuery({ queryKey: ["bookings", from], queryFn: () => api<Booking[]>(`/bookings?from=${from}&to=${to}`), enabled: tab === "rooms" });
+  const bookings = useQuery({ queryKey: ["bookings", from], queryFn: () => api<Booking[]>(`/bookings?from=${from}&to=${to}`) });
 
   const filter = roomFilter ?? rooms.data?.[0]?.id ?? "all";
   const thisWeek = mondayOf(nextWorkday(todayStr()));
@@ -196,36 +154,25 @@ export default function Book() {
       <PageHeader title="Book a room" subtitle="Pick a free slot on the calendar. Other clients' bookings are anonymised."
         actions={<Button onClick={() => setDraft(defaultDraft)} disabled={!rooms.data?.length}><Plus className="size-4" />New reservation</Button>} />
 
-      <div className="flex gap-1 self-start rounded-lg bg-[var(--surface-2)] p-1" role="tablist">
-        {(["rooms", "desks"] as const).map((t) => (
-          <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}
-            className={clsx("rounded-md px-3 py-1 text-sm font-medium cursor-pointer", tab === t ? "bg-[var(--surface)] shadow-[var(--shadow-sm)]" : "text-[var(--ink-soft)]")}>
-            {t === "rooms" ? "Meeting rooms" : "Desks"}
+      <div className="flex flex-wrap gap-3">
+        <button type="button" onClick={() => setRoomFilter("all")}
+          className={clsx("w-44 rounded-[var(--r-lg)] border bg-[var(--surface)] px-3 py-3 text-left transition-all cursor-pointer", filter === "all" ? "border-[var(--brand)] ring-2 ring-[var(--brand)]/30 shadow-[var(--shadow-md)]" : "border-[var(--line)] hover:border-[var(--line-strong)]")}>
+          <div className="text-sm font-semibold">All rooms</div>
+          <div className="mt-0.5 text-xs text-[var(--ink-mute)]">Show every reservation side by side</div>
+        </button>
+        {rooms.data?.map((r) => (
+          <button key={r.id} type="button" onClick={() => setRoomFilter(r.id)}
+            className={clsx("flex w-44 flex-col overflow-hidden rounded-[var(--r-lg)] border bg-[var(--surface)] text-left transition-all cursor-pointer", filter === r.id ? "border-[var(--brand)] ring-2 ring-[var(--brand)]/30 shadow-[var(--shadow-md)]" : "border-[var(--line)] hover:border-[var(--line-strong)]")}>
+            <div className="relative aspect-[4/3] w-full" style={{ backgroundColor: `color-mix(in oklch, ${r.color} 14%, var(--surface))` }}>
+              <span className="absolute top-2 left-2 size-2.5 rounded-full" style={{ background: r.color }} />
+            </div>
+            <div className="flex items-center justify-between px-3 py-2.5">
+              <span className="text-sm font-semibold">{r.name}</span>
+              <span className="flex items-center gap-1 text-xs text-[var(--ink-mute)]"><Users className="size-3" />{r.seats}</span>
+            </div>
           </button>
         ))}
       </div>
-
-      {tab === "rooms" && (
-        <div className="flex flex-wrap gap-3">
-          <button type="button" onClick={() => setRoomFilter("all")}
-            className={clsx("w-44 rounded-[var(--r-lg)] border bg-[var(--surface)] px-3 py-3 text-left transition-all cursor-pointer", filter === "all" ? "border-[var(--brand)] ring-2 ring-[var(--brand)]/30 shadow-[var(--shadow-md)]" : "border-[var(--line)] hover:border-[var(--line-strong)]")}>
-            <div className="text-sm font-semibold">All rooms</div>
-            <div className="mt-0.5 text-xs text-[var(--ink-mute)]">Show every reservation side by side</div>
-          </button>
-          {rooms.data?.map((r) => (
-            <button key={r.id} type="button" onClick={() => setRoomFilter(r.id)}
-              className={clsx("flex w-44 flex-col overflow-hidden rounded-[var(--r-lg)] border bg-[var(--surface)] text-left transition-all cursor-pointer", filter === r.id ? "border-[var(--brand)] ring-2 ring-[var(--brand)]/30 shadow-[var(--shadow-md)]" : "border-[var(--line)] hover:border-[var(--line-strong)]")}>
-              <div className="relative aspect-[4/3] w-full" style={{ backgroundColor: `color-mix(in oklch, ${r.color} 14%, var(--surface))` }}>
-                <span className="absolute top-2 left-2 size-2.5 rounded-full" style={{ background: r.color }} />
-              </div>
-              <div className="flex items-center justify-between px-3 py-2.5">
-                <span className="text-sm font-semibold">{r.name}</span>
-                <span className="flex items-center gap-1 text-xs text-[var(--ink-mute)]"><Users className="size-3" />{r.seats}</span>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -238,16 +185,12 @@ export default function Book() {
         <div className="tnum text-sm text-[var(--ink-soft)]">{fmtDay(week, { day: "2-digit", month: "short" })} – {fmtDay(addDays(week, 4), { day: "2-digit", month: "short" })}{week === thisWeek && <span className="ml-2 text-[var(--brand)]">· current week</span>}</div>
       </div>
 
-      {tab === "rooms" ? (
-        <>
-          {rooms.data && bookings.data ? <RoomWeek monday={week} rooms={rooms.data} roomFilter={filter} bookings={bookings.data} onPick={setDraft} /> : <Skeleton className="h-[600px] w-full" />}
-          <div className="flex flex-wrap items-center gap-4 text-xs text-[var(--ink-mute)]">
-            <span className="inline-flex items-center gap-1.5"><span className="block size-3 rounded-sm border border-[color-mix(in_oklch,var(--brand)_50%,transparent)] bg-[color-mix(in_oklch,var(--brand)_14%,var(--surface))]" />Your bookings</span>
-            <span className="inline-flex items-center gap-1.5"><span className="block size-3 rounded-sm border border-[var(--line-strong)] bg-[var(--surface-2)]" />Reserved (someone else)</span>
-            <span className="ml-auto">Click an empty slot to book</span>
-          </div>
-        </>
-      ) : <DeskWeek monday={week} />}
+      {rooms.data && bookings.data ? <RoomWeek monday={week} rooms={rooms.data} roomFilter={filter} bookings={bookings.data} onPick={setDraft} /> : <Skeleton className="h-[600px] w-full" />}
+      <div className="flex flex-wrap items-center gap-4 text-xs text-[var(--ink-mute)]">
+        <span className="inline-flex items-center gap-1.5"><span className="block size-3 rounded-sm border border-[color-mix(in_oklch,var(--brand)_50%,transparent)] bg-[color-mix(in_oklch,var(--brand)_14%,var(--surface))]" />Your bookings</span>
+        <span className="inline-flex items-center gap-1.5"><span className="block size-3 rounded-sm border border-[var(--line-strong)] bg-[var(--surface-2)]" />Reserved (someone else)</span>
+        <span className="ml-auto">Click an empty slot to book</span>
+      </div>
 
       {draft && rooms.data && <BookingDialog rooms={rooms.data} draft={draft} onClose={() => setDraft(null)} />}
     </div>

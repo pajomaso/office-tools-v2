@@ -9,13 +9,10 @@ import History from "@/pages/History";
 import OfficeInfo from "@/pages/OfficeInfo";
 import ReportPage from "@/pages/Report";
 import Inbox from "@/pages/Inbox";
-import Invoices from "@/pages/Invoices";
 import Tags from "@/pages/Tags";
 import Clients from "@/pages/Clients";
 import Announcements from "@/pages/Announcements";
 import Board from "@/pages/Board";
-import Leads from "@/pages/Leads";
-import Public from "@/pages/Public";
 
 function Authed() {
   const { data: me, isLoading, isError } = useQuery({ queryKey: ["me"], queryFn: () => api<Me>("/me") });
@@ -27,12 +24,10 @@ function Authed() {
         <Route path="/app"><Overview me={me} /></Route>
         <Route path="/app/book" component={Book} />
         <Route path="/app/history" component={History} />
-        <Route path="/app/office"><OfficeInfo me={me} /></Route>
+        <Route path="/app/office" component={OfficeInfo} />
         <Route path="/app/report" component={ReportPage} />
-        <Route path="/app/invoices" component={Invoices} />
         <Route path="/app/announcements"><Announcements me={me} /></Route>
         <Route path="/app/board" component={Board} />
-        {me.role === "manager" && <Route path="/app/leads" component={Leads} />}
         {me.role === "manager" && <Route path="/app/inbox" component={Inbox} />}
         {me.role === "manager" && <Route path="/app/tags" component={Tags} />}
         {me.role === "manager" && <Route path="/app/clients" component={Clients} />}
@@ -48,7 +43,6 @@ export default function App() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
-      <Route path="/welcome" component={Public} />
       <Route><Redirect to="/app" /></Route>
     </Switch>
   );

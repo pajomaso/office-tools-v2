@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Copy, ExternalLink, Wifi } from "lucide-react";
-import { api, type Me, type MyTag, type Office } from "@/lib/api";
+import { api, type MyTag, type Office } from "@/lib/api";
 import { reqKind, reqStatus } from "@/pages/Tags";
 import { Badge, Button, Card, PageHeader, Skeleton } from "@/components/ui";
 
@@ -34,7 +34,7 @@ function TagBlock() {
   );
 }
 
-export default function OfficeInfo({ me }: { me: Me }) {
+export default function OfficeInfo() {
   const { data, isLoading } = useQuery({ queryKey: ["office"], queryFn: () => api<Office>("/office") });
   return (
     <div className="flex flex-col gap-6">
@@ -45,7 +45,6 @@ export default function OfficeInfo({ me }: { me: Me }) {
             <div className="px-5 pt-4 pb-3 text-base font-semibold">My info</div>
             <dl className="grid grid-cols-1 gap-x-6 gap-y-3 px-5 pb-4 text-sm md:grid-cols-2">
               {[
-                ["Plan", me.plan],
                 ["Address", [data.info.office, data.info.address, data.info.city].filter(Boolean).join(", ") || ""],
                 ["Manager contact", data.info.managerContact || ""],
               ].map(([k, v]) => (

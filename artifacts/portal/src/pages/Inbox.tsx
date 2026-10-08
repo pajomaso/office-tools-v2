@@ -6,7 +6,6 @@ import { Badge, Button, EmptyState, PageHeader, Skeleton, fieldInput } from "@/c
 import { fmtDay, ymd } from "@/lib/time";
 import { kindLabel, statusLabel } from "@/pages/Report";
 import { reqKind, reqStatus } from "@/pages/Tags";
-import { monthLabel } from "@/pages/Invoices";
 
 function Item({ r }: { r: Report }) {
   const qc = useQueryClient();
@@ -52,28 +51,6 @@ export default function Inbox() {
                   <li key={r.id}><Link href="/app/tags" className="flex items-center justify-between gap-3 rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3 hover:border-[var(--line-strong)]">
                     <span className="text-sm"><span className="font-semibold">{r.client}</span> <span className="text-[var(--ink-mute)]">· {reqKind[r.kind]}</span></span>
                     <Badge tone="brand">{reqStatus[r.status]}</Badge>
-                  </Link></li>
-                ))}
-              </ul>
-            </section>
-          )}
-          {!!todo.data?.newLeads && (
-            <section>
-              <h2 className="mb-3 text-sm font-semibold">Leads</h2>
-              <Link href="/app/leads" className="flex items-center justify-between gap-3 rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3 hover:border-[var(--line-strong)]">
-                <span className="text-sm"><span className="font-semibold">{todo.data.newLeads}</span> {todo.data.newLeads === 1 ? "person is" : "people are"} waiting for a reply</span>
-                <Badge tone="brand">To answer</Badge>
-              </Link>
-            </section>
-          )}
-          {!!todo.data?.invoicesDue.length && (
-            <section>
-              <h2 className="mb-3 text-sm font-semibold">Invoices to upload ({todo.data.invoicesDue.length})</h2>
-              <ul className="flex flex-col gap-2">
-                {todo.data.invoicesDue.map((d) => (
-                  <li key={d.clientId}><Link href="/app/clients" className="flex items-center justify-between gap-3 rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3 hover:border-[var(--line-strong)]">
-                    <span className="text-sm"><span className="font-semibold">{d.name}</span> <span className="text-[var(--ink-mute)]">· {monthLabel(d.period)}</span></span>
-                    <Badge tone="brand">Not uploaded</Badge>
                   </Link></li>
                 ))}
               </ul>

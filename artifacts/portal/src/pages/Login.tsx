@@ -19,8 +19,8 @@ export default function Login() {
           <div className="text-[17px] font-semibold tracking-tight">Office</div>
         </div>
         <div className="relative z-10">
-          <h1 className="max-w-[420px] text-[36px] leading-[1.1] font-semibold tracking-[-0.8px]">Meeting rooms<br />and desks,<br />without the chatter.</h1>
-          <p className="mt-4 max-w-[380px] text-sm opacity-85">Internal tool for managing room reservations, desk capacity and member invites.</p>
+          <h1 className="max-w-[420px] text-[36px] leading-[1.1] font-semibold tracking-[-0.8px]">Meeting rooms<br />and requests,<br />without the chatter.</h1>
+          <p className="mt-4 max-w-[380px] text-sm opacity-85">Internal tool for room bookings, office requests and messages at Office 42.</p>
         </div>
       </div>
       <div className="flex items-center justify-center px-6 py-12 lg:px-10">

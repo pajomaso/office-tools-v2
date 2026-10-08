@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import cookieParser from "cookie-parser";
-import { db, portalAnnouncementsTable, portalPostsTable, portalLeadsTable, portalClientsTable } from "@workspace/db";
+import { db, portalAnnouncementsTable, portalPostsTable, portalClientsTable } from "@workspace/db";
 import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { asyncRoute, guard, managerGuard, type Authed } from "./portal";
 
@@ -68,37 +68,6 @@ router.delete("/portal/posts/:id", guard, asyncRoute(async (req, res) => {
   const rows = await db.delete(portalPostsTable).where(and(eq(portalPostsTable.id, id), me.role === "manager" ? undefined : eq(portalPostsTable.authorId, me.id))).returning({ id: portalPostsTable.id });
   if (!rows.length) { bad(res, 404, "Post not found."); return; }
   res.json({ ok: true });
-}));
-
-// ── Public page: leads (no sign-in) ─────────────────────────────────────────
-const hits = new Map<string, number[]>();
-const LEADS_PER_HOUR_PER_IP = 5;
-
-router.post("/portal/public/leads", asyncRoute(async (req, res) => {
-  // Honeypot: real people never fill the hidden "website" field. Pretend it worked.
-  if (String(req.body?.website ?? "")) { res.status(201).json({ ok: true }); return; }
-  const ip = req.ip ?? "unknown";
-  const recent = (hits.get(ip) ?? []).filter((t) => Date.now() - t < 3_600_000);
-  if (recent.length >= LEADS_PER_HOUR_PER_IP) { bad(res, 429, "Too many requests. Please try again later."); return; }
-
-  const name = String(req.body?.name ?? "").trim().slice(0, 120);
-  const email = String(req.body?.email ?? "").trim().toLowerCase().slice(0, 200);
-  if (!name || !/^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$/.test(email)) { bad(res, 400, "Please add your name and a valid email."); return; }
-  const interest = ["desk", "room", "other"].includes(req.body?.interest) ? req.body.interest : "other";
-  hits.set(ip, [...recent, Date.now()]);
-  await db.insert(portalLeadsTable).values({ name, email, interest, company: String(req.body?.company ?? "").trim().slice(0, 160), message: String(req.body?.message ?? "").trim().slice(0, 1000) });
-  res.status(201).json({ ok: true });
-}));
-
-router.get("/portal/admin/leads", managerGuard, asyncRoute(async (_req, res) => {
-  res.json(await db.select().from(portalLeadsTable).orderBy(desc(portalLeadsTable.createdAt)).limit(200));
-}));
-
-router.patch("/portal/admin/leads/:id", managerGuard, asyncRoute(async (req, res) => {
-  const status = req.body?.status === "contacted" ? "contacted" : "new";
-  const [row] = await db.update(portalLeadsTable).set({ status }).where(eq(portalLeadsTable.id, String(req.params.id))).returning();
-  if (!row) { bad(res, 404, "Lead not found."); return; }
-  res.json(row);
 }));
 
 export default router;

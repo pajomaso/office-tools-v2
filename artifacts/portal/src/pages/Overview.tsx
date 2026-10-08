@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Calendar, Plus } from "lucide-react";
 import { AnnouncementItem } from "@/pages/Announcements";
-import { api, type Allowance, type Announcement, type Booking, type Me, type Room, type Summary } from "@/lib/api";
+import { api, type Announcement, type Booking, type Me, type Room, type Summary } from "@/lib/api";
 import { Badge, Card, EmptyState, LinkButton, PageHeader, Skeleton } from "@/components/ui";
 import { CLOSE, OPEN, addDays, fmtDay, hm, hourOf, lisbonToUtc, todayStr, ymd } from "@/lib/time";
 
@@ -33,20 +33,6 @@ function RoomToday({ room, bookings }: { room: Room; bookings: Booking[] }) {
   );
 }
 
-function Left({ label, a }: { label: string; a: Allowance }) {
-  const left = a.limit == null ? null : Math.max(0, a.limit - a.used);
-  return (
-    <div>
-      <div className="text-[11.5px] font-semibold uppercase tracking-wide text-[var(--ink-mute)]">{label}</div>
-      <div className="tnum mt-1 text-2xl font-semibold">
-        {left == null ? "∞" : left}
-        <span className="ml-1 text-sm font-medium text-[var(--ink-mute)]">{left == null ? "no limit" : `left of ${a.limit}`}</span>
-      </div>
-      <div className="mt-0.5 text-xs text-[var(--ink-mute)]">{a.used} used this month</div>
-    </div>
-  );
-}
-
 export default function Overview({ me }: { me: Me }) {
   const today = todayStr();
   const news = useQuery({ queryKey: ["announcements"], queryFn: () => api<Announcement[]>("/announcements") });
@@ -56,7 +42,7 @@ export default function Overview({ me }: { me: Me }) {
   const bookings = useQuery({ queryKey: ["bookings", "today", from], queryFn: () => api<Booking[]>(`/bookings?from=${from}&to=${to}`) });
   const roomName = (id: string) => rooms.data?.find((r) => r.id === id)?.name ?? "Room";
   const s = summary.data;
-  const nothing = s && !s.upcoming.length && !s.upcomingDesks.length;
+  const nothing = s && !s.upcoming.length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -76,23 +62,17 @@ export default function Overview({ me }: { me: Me }) {
         </Link>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+      <div className="grid gap-4">
         <Card className="p-5">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-semibold">Your upcoming reservations</h2>
             <Link href="/app/history" className="text-xs font-medium text-[var(--brand)] hover:underline">See all →</Link>
           </div>
           {summary.isLoading ? <Skeleton className="h-40" /> : nothing ? (
-            <EmptyState icon={<Calendar className="size-5" />} title="Nothing booked yet" body="Reserve a seat or a meeting room to get started."
+            <EmptyState icon={<Calendar className="size-5" />} title="Nothing booked yet" body="Reserve a meeting room to get started."
               action={<LinkButton href="/app/book"><Plus className="size-3.5" />Book your first room</LinkButton>} />
           ) : (
             <ul className="flex flex-col divide-y divide-[var(--line)]">
-              {s?.upcomingDesks.map((d) => (
-                <li key={d} className="flex items-center justify-between gap-3 py-2.5">
-                  <div><div className="text-sm font-medium">Desk seat</div><div className="text-xs text-[var(--ink-mute)]">Hot desk · all day</div></div>
-                  <div className="tnum text-right text-xs text-[var(--ink-soft)]">{fmtDay(d, { weekday: "short", day: "numeric", month: "short" })}</div>
-                </li>
-              ))}
               {s?.upcoming.map((b) => (
                 <li key={b.id} className="flex items-center justify-between gap-3 py-2.5">
                   <div className="min-w-0">
@@ -107,28 +87,6 @@ export default function Overview({ me }: { me: Me }) {
               ))}
             </ul>
           )}
-        </Card>
-        <Card className="flex flex-col gap-3 p-5">
-          <div>
-            <div className="text-[12.5px] text-[var(--ink-mute)]">Your plan</div>
-            <div className="mt-1 text-base font-semibold">{s?.plan ?? me.plan}</div>
-          </div>
-          {s ? (
-            <div className="grid grid-cols-2 gap-3">
-              <Left label="Desk days" a={s.deskDays} />
-              <Left label="Room days" a={s.roomDays} />
-            </div>
-          ) : <Skeleton className="h-16" />}
-          <div className="grid grid-cols-2 gap-3 text-xs text-[var(--ink-mute)]">
-            <div><span className="tnum font-semibold text-[var(--ink)]">{s?.totalBookings ?? "–"}</span> room bookings in total</div>
-            <div><span className="tnum font-semibold text-[var(--ink)]">{s?.hoursThisMonth ?? "–"}h</span> in rooms this month</div>
-          </div>
-          <hr className="my-1 border-t border-[var(--line)]" />
-          <div>
-            <h3 className="mb-1.5 text-sm font-semibold">Office hours</h3>
-            <div className="mono tnum text-sm text-[var(--ink-soft)]">Mon – Fri · {String(OPEN).padStart(2, "0")}:00 – {CLOSE}:00</div>
-            <p className="mt-1.5 text-xs text-[var(--ink-mute)]">Bookings are free for clients. Desks are billed monthly off-platform.</p>
-          </div>
         </Card>
       </div>
 

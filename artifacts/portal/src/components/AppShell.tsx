@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, History, Inbox, KeyRound, LayoutDashboard, LogOut, Megaphone, MessageSquare, MessageSquareWarning, UserPlus, Receipt, Sparkles, Square, Users } from "lucide-react";
+import { Calendar, History, Inbox, KeyRound, LayoutDashboard, LogOut, Megaphone, MessageSquare, MessageSquareWarning, Sparkles, Square, Users } from "lucide-react";
 import clsx from "clsx";
 import { api, type Me } from "@/lib/api";
 
@@ -12,7 +12,6 @@ const nav = [
   { href: "/app/announcements", label: "Announcements", icon: Megaphone },
   { href: "/app/board", label: "Board", icon: MessageSquare },
   { href: "/app/report", label: "Report", icon: MessageSquareWarning },
-  { href: "/app/invoices", label: "Invoices", icon: Receipt },
   { href: "/app/office", label: "Office info", icon: Sparkles },
 ];
 
@@ -23,7 +22,7 @@ export default function AppShell({ me, children }: { me: Me; children: ReactNode
     mutationFn: () => api("/auth/logout", { method: "POST" }),
     onSuccess: () => { qc.clear(); window.location.href = "/login"; },
   });
-  const items = me.role === "manager" ? [...nav, { href: "/app/inbox", label: "Inbox", icon: Inbox, exact: false }, { href: "/app/tags", label: "Tags", icon: KeyRound, exact: false }, { href: "/app/clients", label: "Clients", icon: Users, exact: false }, { href: "/app/leads", label: "Leads", icon: UserPlus, exact: false }] : nav;
+  const items = me.role === "manager" ? [...nav, { href: "/app/inbox", label: "Inbox", icon: Inbox, exact: false }, { href: "/app/tags", label: "Tags", icon: KeyRound, exact: false }, { href: "/app/clients", label: "Clients", icon: Users, exact: false }] : nav;
   const pending = useQuery({ queryKey: ["inbox-count"], queryFn: () => api<{ pending: number }>("/inbox/count"), enabled: me.role === "manager", refetchInterval: 60_000 });
   const initials = me.name.slice(0, 2).toUpperCase();
 

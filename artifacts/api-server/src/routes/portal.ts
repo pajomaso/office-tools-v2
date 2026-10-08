@@ -6,14 +6,13 @@ import {
   portalClientsTable,
   portalRoomsTable,
   portalBookingsTable,
-  portalDeskBookingsTable,
   portalReportsTable,
   portalLoginTokensTable,
   portalSessionsTable,
   portalSettingsTable,
 } from "@workspace/db";
-import { and, asc, desc, eq, gt, gte, inArray, lt, sql } from "drizzle-orm";
-import { TZ, isValidDate, isValidTime, lisbonToUtc, partsOf } from "./portal-time";
+import { and, asc, desc, eq, gt, gte, lt, sql } from "drizzle-orm";
+import { isValidDate, isValidTime, lisbonToUtc, partsOf } from "./portal-time";
 
 const router: IRouter = Router();
 router.use("/portal", cookieParser());
@@ -23,8 +22,6 @@ const SESSION_DAYS = 30;
 const TOKEN_MINUTES = 15;
 const OPEN_HOUR = 8;
 const CLOSE_HOUR = 20;
-const DESK_CANCEL_HOUR = 10; // desk cancellations close at 10:00 on the day
-const DEFAULT_DESK_CAPACITY = 10; // overridden by the "capacity" setting
 const isProd = process.env.NODE_ENV === "production";
 
 type Client = typeof portalClientsTable.$inferSelect;
@@ -58,11 +55,6 @@ function requireManager(req: Request, res: Response, next: NextFunction) {
 }
 export const guard: RequestHandler[] = [requireClient];
 export const managerGuard: RequestHandler[] = [requireClient, requireManager];
-
-async function setting<T>(key: string, fallback: T): Promise<T> {
-  const [row] = await db.select().from(portalSettingsTable).where(eq(portalSettingsTable.key, key));
-  return (row?.value as T) ?? fallback;
-}
 
 // ── Auth (magic link) ───────────────────────────────────────────────────────
 router.post("/portal/auth/request", asyncRoute(async (req, res) => {
@@ -101,19 +93,8 @@ router.post("/portal/auth/logout", asyncRoute(async (req, res) => {
 
 router.get("/portal/me", guard, asyncRoute(async (req, res) => {
   const c = (req as Authed).client;
-  res.json({ id: c.id, name: c.name, email: c.email, plan: c.plan, role: c.role });
+  res.json({ id: c.id, name: c.name, email: c.email, role: c.role });
 }));
-
-// ── Allowances ──────────────────────────────────────────────────────────────
-// Desk day = a day with a desk booking. Room day = a day with at least one room booking
-// (spent by the first room booking of the day; cancelling the only one gives it back).
-async function usage(clientId: string, month: string) {
-  const desks = await db.select({ date: portalDeskBookingsTable.date }).from(portalDeskBookingsTable).where(eq(portalDeskBookingsTable.clientId, clientId));
-  const rooms = await db.select({ startsAt: portalBookingsTable.startsAt }).from(portalBookingsTable).where(eq(portalBookingsTable.clientId, clientId));
-  const deskDays = new Set(desks.map((d) => d.date).filter((d) => d.startsWith(month)));
-  const roomDays = new Set(rooms.map((r) => partsOf(r.startsAt)).filter((p) => p.month === month).map((p) => p.date));
-  return { deskDays, roomDays };
-}
 
 // ── Rooms, bookings ─────────────────────────────────────────────────────────
 router.get("/portal/rooms", guard, asyncRoute(async (_req, res) => {
@@ -136,7 +117,7 @@ router.get("/portal/bookings", guard, asyncRoute(async (req, res) => {
 
 router.post("/portal/bookings", guard, asyncRoute(async (req, res) => {
   const me = (req as Authed).client;
-  const { roomId, title, attendees, notes, date, start, end, alsoDesk } = req.body ?? {};
+  const { roomId, title, attendees, notes, date, start, end } = req.body ?? {};
   if (!roomId || !String(title ?? "").trim()) { res.status(400).json({ error: "A title and a room are required." }); return; }
   if (!isValidDate(date) || !isValidTime(start) || !isValidTime(end)) { res.status(400).json({ error: "Pick a date, start and end." }); return; }
   const startsAt = lisbonToUtc(date, start), endsAt = lisbonToUtc(date, end);
@@ -154,25 +135,12 @@ router.post("/portal/bookings", guard, asyncRoute(async (req, res) => {
   if (n < 1 || n > room.seats) { res.status(400).json({ error: `${room.name} seats ${room.seats}.` }); return; }
 
   const result = await db.transaction(async (tx) => {
-    // Serialise per client and per room so quotas and slots can't be double-spent by concurrent requests.
+    // Serialise per room so two people can't take the same slot at the same moment.
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${"room:" + roomId}))`);
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${"client:" + me.id}))`);
-
-    const { roomDays, deskDays } = await usage(me.id, sp.month);
-    if (me.roomDaysPerMonth != null && !roomDays.has(sp.date) && roomDays.size >= me.roomDaysPerMonth) {
-      return { error: `You've used all ${me.roomDaysPerMonth} room days in your plan this month.`, status: 403 };
-    }
     const [clash] = await tx.select({ id: portalBookingsTable.id }).from(portalBookingsTable)
       .where(and(eq(portalBookingsTable.roomId, roomId), lt(portalBookingsTable.startsAt, endsAt), gt(portalBookingsTable.endsAt, startsAt))).limit(1);
     if (clash) return { error: "That slot was just taken. Pick another time.", status: 409 };
 
-    if (alsoDesk && !deskDays.has(sp.date)) {
-      const cap = Number(await setting("capacity", DEFAULT_DESK_CAPACITY));
-      const [{ n: taken }] = await tx.select({ n: sql<number>`count(*)::int` }).from(portalDeskBookingsTable).where(eq(portalDeskBookingsTable.date, sp.date));
-      if (taken >= cap) return { error: "No desk seats left that day. Untick the desk, or pick another day.", status: 409 };
-      if (me.deskDaysPerMonth != null && deskDays.size >= me.deskDaysPerMonth) return { error: `You've used all ${me.deskDaysPerMonth} desk days in your plan this month.`, status: 403 };
-      await tx.insert(portalDeskBookingsTable).values({ clientId: me.id, date: sp.date }).onConflictDoNothing();
-    }
     const [row] = await tx.insert(portalBookingsTable)
       .values({ roomId, clientId: me.id, title: String(title).trim(), attendees: n, startsAt, endsAt, notes: String(notes ?? "") }).returning();
     return { row };
@@ -191,62 +159,6 @@ router.delete("/portal/bookings/:id", guard, asyncRoute(async (req, res) => {
   res.json({ ok: true });
 }));
 
-// ── Desks (hot desks: a seat for a day) ─────────────────────────────────────
-router.get("/portal/desks", guard, asyncRoute(async (req, res) => {
-  const me = (req as Authed).client;
-  const from = String(req.query.from ?? ""), to = String(req.query.to ?? "");
-  if (!isValidDate(from) || !isValidDate(to)) { res.status(400).json({ error: "from/to required" }); return; }
-  const cap = Number(await setting("capacity", DEFAULT_DESK_CAPACITY));
-  const rows = await db.select().from(portalDeskBookingsTable)
-    .where(and(gte(portalDeskBookingsTable.date, from), sql`${portalDeskBookingsTable.date} <= ${to}`));
-  const byDate = new Map<string, { taken: number; mine: boolean }>();
-  for (const r of rows) {
-    const e = byDate.get(r.date) ?? { taken: 0, mine: false };
-    e.taken++; if (r.clientId === me.id) e.mine = true;
-    byDate.set(r.date, e);
-  }
-  res.json({ capacity: cap, days: [...byDate].map(([date, v]) => ({ date, ...v })) });
-}));
-
-router.post("/portal/desks", guard, asyncRoute(async (req, res) => {
-  const me = (req as Authed).client;
-  const date = req.body?.date;
-  if (!isValidDate(date)) { res.status(400).json({ error: "Pick a date." }); return; }
-  const now = partsOf(new Date());
-  const target = partsOf(lisbonToUtc(date, "12:00"));
-  if (date < now.date) { res.status(400).json({ error: "That day has already passed." }); return; }
-  if (target.dow === 0 || target.dow === 6) { res.status(400).json({ error: "The office is open Monday to Friday." }); return; }
-
-  const out = await db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${"desk:" + date}))`);
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${"client:" + me.id}))`);
-    const { deskDays } = await usage(me.id, target.month);
-    if (deskDays.has(date)) return { error: "You already have a seat that day.", status: 409 };
-    if (me.deskDaysPerMonth != null && deskDays.size >= me.deskDaysPerMonth) return { error: `You've used all ${me.deskDaysPerMonth} desk days in your plan this month.`, status: 403 };
-    const cap = Number(await setting("capacity", DEFAULT_DESK_CAPACITY));
-    const [{ n }] = await tx.select({ n: sql<number>`count(*)::int` }).from(portalDeskBookingsTable).where(eq(portalDeskBookingsTable.date, date));
-    if (n >= cap) return { error: "The office is full that day.", status: 409 };
-    await tx.insert(portalDeskBookingsTable).values({ clientId: me.id, date });
-    return { ok: true };
-  });
-  if (!("ok" in out)) { res.status(out.status).json({ error: out.error }); return; }
-  res.status(201).json({ ok: true });
-}));
-
-// Desks: cancel until 10:00 on the day. After that the day counts as used.
-router.delete("/portal/desks/:date", guard, asyncRoute(async (req, res) => {
-  const me = (req as Authed).client;
-  const date = String(req.params.date);
-  if (!isValidDate(date)) { res.status(400).json({ error: "Bad date." }); return; }
-  const now = partsOf(new Date());
-  if (date < now.date || (date === now.date && now.h >= DESK_CANCEL_HOUR)) {
-    res.status(403).json({ error: `Desk bookings can be cancelled until ${DESK_CANCEL_HOUR}:00 on the day. After that the day counts as used.` }); return;
-  }
-  const deleted = await db.delete(portalDeskBookingsTable).where(and(eq(portalDeskBookingsTable.clientId, me.id), eq(portalDeskBookingsTable.date, date))).returning({ id: portalDeskBookingsTable.id });
-  if (!deleted.length) { res.status(404).json({ error: "No seat booked that day." }); return; }
-  res.json({ ok: true });
-}));
-
 // ── My bookings, summary, office info ───────────────────────────────────────
 router.get("/portal/my-bookings", guard, asyncRoute(async (req, res) => {
   const me = (req as Authed).client;
@@ -255,39 +167,19 @@ router.get("/portal/my-bookings", guard, asyncRoute(async (req, res) => {
   const rows = await db.select().from(portalBookingsTable)
     .where(and(eq(portalBookingsTable.clientId, me.id), gte(portalBookingsTable.endsAt, sixMonthsAgo))).orderBy(asc(portalBookingsTable.startsAt));
   const all = rows.map((b) => serialize(b, true));
-  const today = partsOf(now);
-  const desks = await db.select().from(portalDeskBookingsTable).where(eq(portalDeskBookingsTable.clientId, me.id)).orderBy(asc(portalDeskBookingsTable.date));
-  const cancellable = (d: string) => d > today.date || (d === today.date && today.h < DESK_CANCEL_HOUR);
   res.json({
     upcoming: all.filter((b) => new Date(b.endsAt) > now),
     past: all.filter((b) => new Date(b.endsAt) <= now).reverse(),
-    upcomingDesks: desks.filter((d) => d.date >= today.date).map((d) => ({ date: d.date, cancellable: cancellable(d.date) })),
-    pastDesks: desks.filter((d) => d.date < today.date).map((d) => ({ date: d.date })).reverse(),
   });
 }));
 
 router.get("/portal/summary", guard, asyncRoute(async (req, res) => {
   const me = (req as Authed).client;
   const now = new Date();
-  const today = partsOf(now);
-  const { deskDays, roomDays } = await usage(me.id, today.month);
-  const mine = await db.select().from(portalBookingsTable).where(eq(portalBookingsTable.clientId, me.id));
-  const monthStart = lisbonToUtc(`${today.month}-01`, "00:00");
-  const hours = mine.filter((b) => b.startsAt >= monthStart && b.endsAt <= now).reduce((s, b) => s + (+b.endsAt - +b.startsAt) / 3_600_000, 0);
-  const upcoming = mine.filter((b) => b.endsAt > now).sort((a, b) => +a.startsAt - +b.startsAt).slice(0, 3);
-  const upcomingDesks = (await db.select().from(portalDeskBookingsTable).where(and(eq(portalDeskBookingsTable.clientId, me.id), gte(portalDeskBookingsTable.date, today.date))).orderBy(asc(portalDeskBookingsTable.date))).slice(0, 3);
+  const upcoming = (await db.select().from(portalBookingsTable).where(and(eq(portalBookingsTable.clientId, me.id), gt(portalBookingsTable.endsAt, now))).orderBy(asc(portalBookingsTable.startsAt))).slice(0, 3);
   const [{ n: updated }] = await db.select({ n: sql<number>`count(*)::int` }).from(portalReportsTable)
     .where(and(eq(portalReportsTable.clientId, me.id), eq(portalReportsTable.reporterNotified, false)));
-  res.json({
-    plan: me.plan,
-    deskDays: { used: deskDays.size, limit: me.deskDaysPerMonth },
-    roomDays: { used: roomDays.size, limit: me.roomDaysPerMonth },
-    totalBookings: mine.length,
-    hoursThisMonth: Math.round(hours * 10) / 10,
-    upcoming: upcoming.map((b) => serialize(b, true)),
-    upcomingDesks: upcomingDesks.map((d) => d.date),
-    updatedReports: updated,
-  });
+  res.json({ upcoming: upcoming.map((b) => serialize(b, true)), updatedReports: updated });
 }));
 
 router.get("/portal/office", guard, asyncRoute(async (_req, res) => {
@@ -343,6 +235,4 @@ router.patch("/portal/inbox/:id", managerGuard, asyncRoute(async (req, res) => {
 
 
 
-void TZ;
-void inArray;
 export default router;

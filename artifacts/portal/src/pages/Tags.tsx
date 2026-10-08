@@ -1,17 +1,38 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Mail } from "lucide-react";
-import { api, type AdminClient, type AdminTags, type TagRequest } from "@/lib/api";
+import { api, type AdminTags, type AdminUser, type TagRequest } from "@/lib/api";
 import { Badge, Button, Card, EmptyState, PageHeader, Skeleton, fieldInput, fieldLabel } from "@/components/ui";
 import { fmtDay, ymd } from "@/lib/time";
 
 export const reqStatus = { to_send: "To send", sent: "Sent to supplier", confirmed: "Confirmed", rejected: "Rejected" } as const;
 export const reqKind = { new: "New tag", replace: "Replace lost tag", deactivate: "Deactivate" } as const;
 
+function CodeCell({ tagId, number, hasCode }: { tagId: string; number: string; hasCode: boolean }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [code, setCode] = useState("");
+  const save = useMutation({
+    mutationFn: () => api(`/admin/tags/${tagId}/code`, { method: "PUT", json: { code } }),
+    onSuccess: () => { setOpen(false); setCode(""); qc.invalidateQueries({ queryKey: ["admin-tags"] }); },
+  });
+  if (!open) return <button type="button" onClick={() => setOpen(true)} className="text-left text-xs text-[var(--brand)] hover:underline cursor-pointer">{hasCode ? "•••• · change" : "Set code"}</button>;
+  return (
+    <form className="flex flex-col gap-1" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
+      <div className="flex items-center gap-1">
+        <input aria-label={`New code for tag ${number}`} inputMode="numeric" pattern="\d{4}" maxLength={4} autoFocus className="mono h-7 w-16 rounded-md border border-[var(--line-strong)] px-2 text-sm" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} />
+        <Button type="submit" variant="outline" disabled={save.isPending || code.length !== 4}>Save</Button>
+        <button type="button" onClick={() => setOpen(false)} className="text-xs text-[var(--ink-mute)] cursor-pointer">Cancel</button>
+      </div>
+      {save.isError && <span role="alert" className="max-w-56 text-xs text-[var(--danger)]">{save.error.message}</span>}
+    </form>
+  );
+}
+
 function Request({ r, selected, onToggle }: { r: TagRequest; selected: boolean; onToggle: () => void }) {
   const qc = useQueryClient();
-  const [num, setNum] = useState("");
-  const done = () => ["admin-tags", "inbox-count", "inbox-todo", "admin-clients"].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
+  const [num, setNum] = useState(r.newTagNumber ?? "");
+  const done = () => ["admin-tags", "inbox-count", "inbox-todo", "admin-users"].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
   const confirm = useMutation({ mutationFn: () => api(`/admin/tag-requests/${r.id}/confirm`, { method: "POST", json: { tagNumber: num } }), onSuccess: done });
   const reject = useMutation({ mutationFn: () => api(`/admin/tag-requests/${r.id}/reject`, { method: "POST" }), onSuccess: done });
   const err = confirm.error ?? reject.error;
@@ -43,11 +64,11 @@ function Request({ r, selected, onToggle }: { r: TagRequest; selected: boolean; 
 export default function Tags() {
   const qc = useQueryClient();
   const data = useQuery({ queryKey: ["admin-tags"], queryFn: () => api<AdminTags>("/admin/tags") });
-  const clients = useQuery({ queryKey: ["admin-clients"], queryFn: () => api<AdminClient[]>("/admin/clients") });
+  const clients = useQuery({ queryKey: ["admin-users"], queryFn: () => api<AdminUser[]>("/admin/users") });
   const [sel, setSel] = useState<string[]>([]);
   const [imp, setImp] = useState({ number: "", clientId: "", access: "" });
   const [nr, setNr] = useState({ clientId: "", kind: "new" });
-  const refresh = () => ["admin-tags", "inbox-count", "inbox-todo", "admin-clients"].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
+  const refresh = () => ["admin-tags", "inbox-count", "inbox-todo", "admin-users"].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
   const markSent = useMutation({ mutationFn: () => api("/admin/tag-requests/mark-sent", { method: "POST", json: { ids: sel } }), onSuccess: () => { setSel([]); refresh(); } });
   const addTag = useMutation({ mutationFn: () => api("/admin/tags", { method: "POST", json: { ...imp, clientId: imp.clientId || null } }), onSuccess: () => { setImp({ number: "", clientId: "", access: "" }); refresh(); } });
   const addReq = useMutation({ mutationFn: () => api("/admin/tag-requests", { method: "POST", json: nr }), onSuccess: refresh });
@@ -122,17 +143,18 @@ export default function Tags() {
             <h2 className="mb-3 text-sm font-semibold">Tag database ({data.data?.tags.length ?? 0})</h2>
             <Card>
               <table className="w-full text-sm">
-                <thead><tr className="border-b border-[var(--line)] text-left text-xs uppercase tracking-wide text-[var(--ink-mute)]"><th className="px-4 py-2 font-medium">Tag</th><th className="px-4 py-2 font-medium">Person</th><th className="px-4 py-2 font-medium">Status</th><th className="px-4 py-2 font-medium">Access</th></tr></thead>
+                <thead><tr className="border-b border-[var(--line)] text-left text-xs uppercase tracking-wide text-[var(--ink-mute)]"><th className="px-4 py-2 font-medium">Tag</th><th className="px-4 py-2 font-medium">Person</th><th className="px-4 py-2 font-medium">Status</th><th className="px-4 py-2 font-medium">Code</th><th className="px-4 py-2 font-medium">Access</th></tr></thead>
                 <tbody>
                   {data.data?.tags.map((t) => (
                     <tr key={t.id} className="border-b border-[var(--line)] last:border-0">
                       <td className="mono px-4 py-2">{t.number}</td>
                       <td className="px-4 py-2">{t.client ?? <span className="text-[var(--ink-mute)]">Unassigned</span>}</td>
                       <td className="px-4 py-2"><Badge tone={t.status === "active" ? "brand" : "neutral"}>{t.status}</Badge></td>
+                      <td className="px-4 py-2"><CodeCell tagId={t.id} number={t.number} hasCode={!!t.hasCode} /></td>
                       <td className="px-4 py-2"><input aria-label={`Access for tag ${t.number}`} defaultValue={t.access} className="w-full bg-transparent outline-none focus:underline" onBlur={(e) => e.target.value !== t.access && saveAccess.mutate({ id: t.id, access: e.target.value })} placeholder="e.g. Front door, 24/7" /></td>
                     </tr>
                   ))}
-                  {!data.data?.tags.length && <tr><td colSpan={4} className="px-4 py-6 text-center text-[var(--ink-mute)]">No tags yet. Add the existing ones below.</td></tr>}
+                  {!data.data?.tags.length && <tr><td colSpan={5} className="px-4 py-6 text-center text-[var(--ink-mute)]">No tags yet. Add the existing ones below.</td></tr>}
                 </tbody>
               </table>
             </Card>

@@ -35,7 +35,7 @@ export default function Announcements({ me }: { me: Me }) {
   const list = useQuery({ queryKey: ["announcements"], queryFn: () => api<Announcement[]>("/announcements") });
   const [f, setF] = useState({ title: "", body: "", pinned: false });
   const post = useMutation({ mutationFn: () => api("/announcements", { method: "POST", json: f }), onSuccess: () => { setF({ title: "", body: "", pinned: false }); qc.invalidateQueries({ queryKey: ["announcements"] }); } });
-  const manager = me.role === "manager";
+  const manager = me.role === "admin";
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Announcements" subtitle="Official news from the office manager, for everyone in the office." />

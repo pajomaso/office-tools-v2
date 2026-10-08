@@ -9,7 +9,8 @@
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
-    "test:time": "for tz in UTC America/New_York Asia/Tokyo; do echo \"== machine timezone: $tz\"; TZ=$tz pnpm --filter @workspace/scripts exec tsx --test ../artifacts/api-server/src/routes/portal-time.test.ts ../artifacts/portal/src/lib/time.test.ts || exit 1; done"
+    "test:time": "for tz in UTC America/New_York Asia/Tokyo; do echo \"== machine timezone: $tz\"; TZ=$tz pnpm --filter @workspace/scripts exec tsx --test ../artifacts/api-server/src/routes/portal-time.test.ts ../artifacts/portal/src/lib/time.test.ts || exit 1; done",
+    "test": "pnpm run test:time && pnpm --filter @workspace/scripts exec tsx --test ../artifacts/api-server/src/routes/portal-crypto.test.ts"
   },
   "private": true,
   "devDependencies": {

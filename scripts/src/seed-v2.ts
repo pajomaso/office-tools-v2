@@ -49,8 +49,10 @@ async function main() {
     { number: "T-007", clientId: null, status: "spare" },
     { number: "T-008", clientId: null, status: "lost" },
     { number: "T-009", clientId: null, status: "blocked" },
-    { number: "T-010", clientId: by("bruno@example.test"), status: "pending" },
+    { number: "T-010", clientId: null, status: "pending" }, // assigned to Bruno once the supplier confirms (see the request below)
   ]);
+
+  await db.insert(portalTagRequestsTable).values({ clientId: by("bruno@example.test"), kind: "new", newTagNumber: "T-010", note: "Onboarding" });
 
   await db.insert(portalSettingsTable).values([
     { key: "capacity", value: 10 },

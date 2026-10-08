@@ -20,10 +20,12 @@ The spec replaces JTBD v6 where they differ. Anything marked `??` in it is uncon
 - Dev servers are defined in `.claude/launch.json` (`api-server`, `portal`).
 - Seed fake data: `pnpm --filter @workspace/scripts run seed:v2` (refuses to run unless the database is on localhost).
 - Schema: `pnpm --filter @workspace/db run push` (local only). If `drizzle-kit` asks about renames it hangs without a terminal; drop/rename columns by SQL first.
-- Timezone check: `pnpm run test:time` runs the booking-time tests with the machine set to 3 different timezones (must all pass).
+- All tests: `pnpm run test` (timezone tests under 3 machine timezones + password/door-code tests). Timezone only: `pnpm run test:time` runs the booking-time tests with the machine set to 3 different timezones (must all pass).
 - Check: `npx tsc -p artifacts/portal/tsconfig.json --noEmit` and the same in `artifacts/api-server` (filter for `portal`; `api-zod` errors predate this work).
 
 ## Notes
+- Door codes are stored encrypted. Locally a fixed fake key is used; production MUST set `PORTAL_CODE_KEY` (32 random bytes, base64) and the app refuses to start the feature without it. Never reuse the local key for real codes.
+- No email service is connected: the welcome email is shown as a preview, and sign-in links are shown on screen outside production.
 - The live app (office-8mijw.ondigitalocean.app) is NOT built from this repo. This repo's deploy config is Replit's. Confirm with Davide which repo/branch DigitalOcean deploys before any merge.
 - The office is in Braga: all booking rules and display use Europe/Lisbon time (`artifacts/api-server/src/routes/portal-time.ts`, `artifacts/portal/src/lib/time.ts`).
 - Magic-link emails are not sent yet; outside production the link is logged and shown on screen.

@@ -10,7 +10,8 @@ import OfficeInfo from "@/pages/OfficeInfo";
 import ReportPage from "@/pages/Report";
 import Inbox from "@/pages/Inbox";
 import Tags from "@/pages/Tags";
-import Clients from "@/pages/Clients";
+import Users from "@/pages/Users";
+import Account from "@/pages/Account";
 import Announcements from "@/pages/Announcements";
 import Board from "@/pages/Board";
 
@@ -26,11 +27,12 @@ function Authed() {
         <Route path="/app/history" component={History} />
         <Route path="/app/office" component={OfficeInfo} />
         <Route path="/app/report" component={ReportPage} />
+        <Route path="/app/account"><Account me={me} /></Route>
         <Route path="/app/announcements"><Announcements me={me} /></Route>
         <Route path="/app/board" component={Board} />
-        {me.role === "manager" && <Route path="/app/inbox" component={Inbox} />}
-        {me.role === "manager" && <Route path="/app/tags" component={Tags} />}
-        {me.role === "manager" && <Route path="/app/clients" component={Clients} />}
+        {me.role === "admin" && <Route path="/app/inbox" component={Inbox} />}
+        {me.role === "admin" && <Route path="/app/tags" component={Tags} />}
+        {me.role === "admin" && <Route path="/app/users" component={Users} />}
         <Route><Redirect to="/app" /></Route>
       </Switch>
     </AppShell>

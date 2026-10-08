@@ -7,6 +7,7 @@
     "hello": "tsx ./src/hello.ts",
     "seed": "tsx --env-file ../.env ./src/seed.ts",
     "seed:portal": "tsx --env-file ../.env ./src/seed-portal.ts",
+    "seed:v2": "tsx --env-file ../.env ./src/seed-v2.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

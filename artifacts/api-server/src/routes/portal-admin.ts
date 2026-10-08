@@ -5,7 +5,7 @@ import {
   portalClientsTable,
   portalTagsTable,
   portalTagRequestsTable,
-  portalReportsTable,
+  portalItemsTable,
   portalSettingsTable,
   portalCompaniesTable,
   portalLoginTokensTable,
@@ -309,9 +309,9 @@ router.get("/portal/inbox/todo", managerGuard, asyncRoute(async (_req, res) => {
 }));
 
 router.get("/portal/inbox/count", managerGuard, asyncRoute(async (_req, res) => {
-  const [{ n: reports }] = await db.select({ n: sql<number>`count(*)::int` }).from(portalReportsTable).where(inArray(portalReportsTable.status, ["open", "in_progress"]));
+  const [{ n: items }] = await db.select({ n: sql<number>`count(*)::int` }).from(portalItemsTable).where(and(eq(portalItemsTable.status, "open"), sql`${portalItemsTable.claimedBy} is null`));
   const [{ n: tags }] = await db.select({ n: sql<number>`count(*)::int` }).from(portalTagRequestsTable).where(inArray(portalTagRequestsTable.status, OPEN_REQ));
-  res.json({ pending: reports + tags });
+  res.json({ pending: items + tags });
 }));
 
 export default router;

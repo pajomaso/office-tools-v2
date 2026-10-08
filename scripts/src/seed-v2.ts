@@ -2,7 +2,7 @@
 // Refuses to run unless DATABASE_URL points at this machine, so it can never touch production.
 import {
   db, portalClientsTable, portalCompaniesTable, portalRoomsTable, portalSettingsTable, portalTagsTable, portalBookingsTable,
-  portalReportsTable, portalTagRequestsTable, portalAnnouncementsTable, portalPostsTable, portalSessionsTable, portalLoginTokensTable,
+  portalItemsTable, portalItemFollowsTable, portalMessagesTable, portalBlocksTable, portalTagRequestsTable, portalSessionsTable, portalLoginTokensTable,
 } from "@workspace/db";
 
 const host = (() => { try { return new URL(process.env.DATABASE_URL ?? "").hostname; } catch { return ""; } })();
@@ -13,16 +13,16 @@ if (!["localhost", "127.0.0.1", "[::1]", "::1"].includes(host)) {
 
 async function main() {
   console.log("Seeding v2 fake data (local only)…");
-  for (const t of [portalSessionsTable, portalLoginTokensTable, portalTagRequestsTable, portalReportsTable, portalAnnouncementsTable,
-    portalPostsTable, portalBookingsTable, portalTagsTable, portalSettingsTable, portalRoomsTable, portalClientsTable, portalCompaniesTable]) {
+  for (const t of [portalSessionsTable, portalLoginTokensTable, portalTagRequestsTable, portalItemFollowsTable, portalItemsTable, portalMessagesTable,
+    portalBlocksTable, portalBookingsTable, portalTagsTable, portalSettingsTable, portalRoomsTable, portalClientsTable, portalCompaniesTable]) {
     await db.delete(t);
   }
 
-  await db.insert(portalRoomsTable).values([
+  const rooms = await db.insert(portalRoomsTable).values([
     { name: "Alfa", seats: 4, color: "#045CFC", sortOrder: 0 },
     { name: "Bravo", seats: 4, color: "#16A34A", sortOrder: 1 }, // spec says 4 (marked "??4 or 2??" in one place)
     { name: "Charlie", seats: 6, color: "#D97706", sortOrder: 2 },
-  ]);
+  ]).returning();
 
   const [subvisual, norte] = await db.insert(portalCompaniesTable).values([{ name: "Subvisual" }, { name: "Studio Norte" }]).returning();
   const people = [
@@ -58,9 +58,26 @@ async function main() {
     { key: "capacity", value: 10 },
     { key: "supplier", value: { name: "", email: "" } },
     { key: "info", value: { office: "Office 42", city: "Braga", address: "", managerContact: "", rules: [] } },
-    { key: "wifi", value: [{ label: "Guest WiFi", visibility: "Public", ssid: "Office-Guest", password: "", note: "Share freely with visitors." }] },
-    { key: "videos", value: [] },
+    { key: "wifi", value: [
+      { label: "Guest WiFi", visibility: "everyone", ssid: "Office-Guest", password: "guest-fake-pass", note: "Share freely with visitors." },
+      { label: "Internal WiFi", visibility: "subvisual", ssid: "Office-Internal", password: "internal-fake-pass", note: "Subvisual accounts only." },
+    ] },
   ]);
+  const day = 86_400_000, hour = 3_600_000;
+  await db.insert(portalMessagesTable).values([
+    { authorId: by("admin1@example.test"), body: "Fire drill on Thursday at 11:00. Meet at the car park.", pinned: true, expiresAt: new Date(Date.now() + 3 * day) },
+    { authorId: by("ana@example.test"), body: "Anyone up for lunch at 13:00?", expiresAt: new Date(Date.now() + 7 * day) },
+    { authorId: by("carla@example.test"), body: "Found a black umbrella in Charlie. It is on the shelf.", expiresAt: new Date(Date.now() - 2 * day) },
+  ]);
+  const items = await db.insert(portalItemsTable).values([
+    { authorId: by("ana@example.test"), kind: "issue", visibility: "public", title: "Projector in Alfa won't turn on", body: "Tried two remotes." },
+    { authorId: by("carla@example.test"), kind: "request", visibility: "public", title: "More coffee capsules", status: "claimed", claimedBy: by("admin2@example.test"), statusNote: "Ordered, arrives Friday" },
+    { authorId: by("diogo@example.test"), kind: "request", visibility: "private", title: "Second monitor for my desk" },
+  ]).returning();
+  await db.insert(portalItemFollowsTable).values(items.map((i) => ({ itemId: i.id, userId: i.authorId })));
+  const at = (h: number) => new Date(Date.now() + h * hour);
+  await db.insert(portalBookingsTable).values({ roomId: rooms[0]!.id, clientId: by("ana@example.test"), title: "Client call", bookedFor: "Rui (client)", startsAt: at(24), endsAt: at(25) });
+  await db.insert(portalBlocksTable).values({ roomId: null, kind: "cleaning", title: "Weekly cleaning", startsAt: at(48), endsAt: at(49), createdBy: by("admin1@example.test") });
   console.log("  3 rooms, 8 users (3 admins, 2 companies, 1 event guest), 10 tags. Sign in as admin1@example.test (link is shown on screen locally).");
   process.exit(0);
 }

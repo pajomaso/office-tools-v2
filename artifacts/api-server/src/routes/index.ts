@@ -11,7 +11,10 @@ import suggestionsRouter from "./suggestions";
 import authRouter from "./auth";
 import portalRouter from "./portal";
 import portalAdminRouter from "./portal-admin";
-import portalCommunityRouter from "./portal-community";
+import portalItemsRouter from "./portal-items";
+import portalMessagesRouter from "./portal-messages";
+import portalRoomsRouter from "./portal-rooms";
+import portalAreaRouter from "./portal-area";
 
 const router: IRouter = Router();
 
@@ -27,6 +30,9 @@ router.use(suggestionsRouter);
 router.use(authRouter);
 router.use(portalRouter);
 router.use(portalAdminRouter);
-router.use(portalCommunityRouter);
+router.use(portalItemsRouter);
+router.use(portalMessagesRouter);
+router.use(portalRoomsRouter);
+router.use(portalAreaRouter);
 
 export default router;

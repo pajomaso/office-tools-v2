@@ -75,7 +75,8 @@ async function main() {
     { authorId: by("diogo@example.test"), kind: "request", visibility: "private", title: "Second monitor for my desk" },
   ]).returning();
   await db.insert(portalItemFollowsTable).values(items.map((i) => ({ itemId: i.id, userId: i.authorId })));
-  const at = (h: number) => new Date(Date.now() + h * hour);
+  // Whole half hours, like the booking form produces.
+  const at = (h: number) => new Date(Math.round((Date.now() + h * hour) / (30 * 60_000)) * 30 * 60_000);
   await db.insert(portalBookingsTable).values({ roomId: rooms[0]!.id, clientId: by("ana@example.test"), title: "Client call", bookedFor: "Rui (client)", startsAt: at(24), endsAt: at(25) });
   await db.insert(portalBlocksTable).values({ roomId: null, kind: "cleaning", title: "Weekly cleaning", startsAt: at(48), endsAt: at(49), createdBy: by("admin1@example.test") });
   console.log("  3 rooms, 8 users (3 admins, 2 companies, 1 event guest), 10 tags. Sign in as admin1@example.test (link is shown on screen locally).");

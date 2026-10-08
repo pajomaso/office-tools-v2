@@ -3,17 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { api, type Me } from "@/lib/api";
 import AppShell from "@/components/AppShell";
 import Login from "@/pages/Login";
-import Overview from "@/pages/Overview";
-import Book from "@/pages/Book";
-import History from "@/pages/History";
-import OfficeInfo from "@/pages/OfficeInfo";
-import ReportPage from "@/pages/Report";
+import Home from "@/pages/Home";
+import Rooms from "@/pages/Rooms";
+import MePage from "@/pages/Me";
 import Inbox from "@/pages/Inbox";
 import Tags from "@/pages/Tags";
 import Users from "@/pages/Users";
 import Account from "@/pages/Account";
-import Announcements from "@/pages/Announcements";
-import Board from "@/pages/Board";
 
 function Authed() {
   const { data: me, isLoading, isError } = useQuery({ queryKey: ["me"], queryFn: () => api<Me>("/me") });
@@ -22,15 +18,11 @@ function Authed() {
   return (
     <AppShell me={me}>
       <Switch>
-        <Route path="/app"><Overview me={me} /></Route>
-        <Route path="/app/book" component={Book} />
-        <Route path="/app/history" component={History} />
-        <Route path="/app/office" component={OfficeInfo} />
-        <Route path="/app/report" component={ReportPage} />
+        <Route path="/app"><Home me={me} /></Route>
+        <Route path="/app/rooms"><Rooms me={me} /></Route>
+        <Route path="/app/me"><MePage me={me} /></Route>
         <Route path="/app/account"><Account me={me} /></Route>
-        <Route path="/app/announcements"><Announcements me={me} /></Route>
-        <Route path="/app/board" component={Board} />
-        {me.role === "admin" && <Route path="/app/inbox" component={Inbox} />}
+        {me.role === "admin" && <Route path="/app/inbox"><Inbox me={me} /></Route>}
         {me.role === "admin" && <Route path="/app/tags" component={Tags} />}
         {me.role === "admin" && <Route path="/app/users" component={Users} />}
         <Route><Redirect to="/app" /></Route>

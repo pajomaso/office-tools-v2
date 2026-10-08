@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Copy, Plus } from "lucide-react";
 import clsx from "clsx";
 import { api, type AdminTags, type AdminUser, type Company, type MailPreview } from "@/lib/api";
-import { Badge, Button, Card, Dialog, PageHeader, Skeleton, fieldInput, fieldLabel } from "@/components/ui";
+import { Badge, Button, Card, Dialog, PageHeader, Skeleton, fieldInput, fieldCompact, fieldLabel } from "@/components/ui";
 
 const refresh = (qc: ReturnType<typeof useQueryClient>) => ["admin-users", "admin-companies", "admin-tags", "inbox-count", "inbox-todo"].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
 
@@ -77,7 +77,7 @@ function OnboardDialog({ user, onClose }: { user: AdminUser; onClose: () => void
           </div>
           <div>
             <label className={fieldLabel} htmlFor="ob-code">4-digit code</label>
-            <input id="ob-code" required inputMode="numeric" pattern="\d{4}" maxLength={4} className={clsx(fieldInput, "mono w-28")} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} />
+            <input id="ob-code" required inputMode="numeric" pattern="\d{4}" maxLength={4} className={clsx(fieldCompact, "mono w-28")} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} />
             <p className="mt-1 text-xs text-[var(--ink-mute)]">Must not be used by any other tag.</p>
           </div>
           <label className="flex items-center gap-2 text-sm text-[var(--ink-soft)]"><input type="checkbox" checked={send} onChange={(e) => setSend(e.target.checked)} className="size-4 accent-[var(--brand)]" />Prepare the welcome email</label>
@@ -165,7 +165,7 @@ export default function Users() {
         <h2 className="mb-3 text-sm font-semibold">Companies</h2>
         <div className="mb-3 flex flex-wrap gap-2">{list.map((c) => <Badge key={c.id}>{c.name}</Badge>)}</div>
         <form className="flex items-end gap-3" onSubmit={(e) => { e.preventDefault(); addCo.mutate(); }}>
-          <div><label className={fieldLabel} htmlFor="co-name">New company</label><input id="co-name" className={`${fieldInput} w-64`} value={co} onChange={(e) => setCo(e.target.value)} /></div>
+          <div><label className={fieldLabel} htmlFor="co-name">New company</label><input id="co-name" className={`${fieldCompact} w-64`} value={co} onChange={(e) => setCo(e.target.value)} /></div>
           <Button type="submit" variant="outline" className="h-9" disabled={!co.trim() || addCo.isPending}>Add</Button>
         </form>
         {addCo.isError && <p role="alert" className="mt-2 text-sm text-[var(--danger)]">{addCo.error.message}</p>}

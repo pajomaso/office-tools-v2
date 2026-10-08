@@ -40,13 +40,12 @@ export function lisbonToUtc(date: string, time: string): Date {
   return new Date(t);
 }
 
-export const timeOptions = () => {
-  const out: string[] = [];
-  for (let h = OPEN; h <= CLOSE; h++) for (const m of [0, 30]) if (h < CLOSE || m === 0) out.push(`${pad(h)}:${pad(m)}`);
-  return out;
-};
+// Access is 24/7. Starts run 00:00–23:30; ends run 00:30–23:30 and then 24:00 (midnight, end of the same day).
+const halfHours = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => { const m = (from + i) * 30; return `${pad(Math.floor(m / 60))}:${pad(m % 60)}`; });
+export const startOptions = () => halfHours(0, 47);
+export const endOptions = () => [...halfHours(1, 47), "24:00"];
 export const plusHour = (t: string) => {
   const [h, m] = t.split(":").map(Number);
-  const mins = Math.min(CLOSE * 60, h * 60 + m + 60);
+  const mins = Math.min(24 * 60, h * 60 + m + 60);
   return `${pad(Math.floor(mins / 60))}:${pad(mins % 60)}`;
 };

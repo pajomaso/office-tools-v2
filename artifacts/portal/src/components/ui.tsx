@@ -87,3 +87,5 @@ export function Dialog({ title, description, onClose, children }: { title: strin
 export const fieldLabel = "mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--ink-soft)]";
 export const fieldInput =
   "h-9 w-full rounded-md border border-[var(--line-strong)] bg-transparent px-3 text-sm outline-none focus:border-[var(--brand)] focus:ring-[3px] focus:ring-[var(--brand)]/20 disabled:opacity-50";
+// Same look as fieldInput but without forcing full width, for selects and short fields that set their own width.
+export const fieldCompact = fieldInput.replace(" w-full", "");

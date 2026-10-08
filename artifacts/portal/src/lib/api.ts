@@ -15,23 +15,28 @@ export async function api<T>(path: string, init?: RequestInit & { json?: unknown
 }
 
 export type Me = { id: string; name: string; email: string; role: "user" | "admin"; kind: "company" | "event"; company: string | null; hasPassword: boolean };
-export type Room = { id: string; name: string; seats: number; color: string };
+export type Room = { id: string; name: string; seats: number; color: string; photoVersion: number | null };
 export type Booking = {
-  id: string; roomId: string; startsAt: string; endsAt: string; mine: boolean;
-  title?: string; attendees?: number; notes?: string;
+  id: string; roomId: string; startsAt: string; endsAt: string; mine: boolean; canEdit: boolean;
+  title?: string; bookedFor?: string | null; notes?: string; owner?: string;
 };
-export type Summary = { upcoming: Booking[]; updatedReports: number };
+export type Block = { id: string; roomId: string | null; kind: "cleaning" | "maintenance"; title: string; startsAt: string; endsAt: string };
 export type MyBookings = { upcoming: Booking[]; past: Booking[] };
-export type Office = {
-  wifi: { label: string; visibility: string; ssid: string; password: string; note: string }[];
-  videos: { title: string; duration: string; description: string; url: string }[];
-  info: { office?: string; city?: string; address?: string; managerContact?: string; rules?: string[] };
+export type Message = {
+  id: string; body: string; pinned: boolean; author: string; createdAt: string; editedAt: string | null; expiresAt: string;
+  mine: boolean; canEdit: boolean; canDelete: boolean; canPin: boolean;
 };
-export type Report = {
-  id: string; kind: "issue" | "supply"; title: string; details: string; status: "open" | "in_progress" | "done";
-  managerNote: string; createdAt: string; updatedAt: string; updated?: boolean; reporter?: string; reporterEmail?: string;
+export type Messages = { current: Message[]; past: Message[] };
+export type Item = {
+  id: string; kind: "issue" | "request"; title: string; body: string; visibility: "public" | "private"; status: "open" | "claimed" | "done";
+  statusNote: string; claimedBy: string | null; claimedByName: string | null; author: string; authorId: string; mine: boolean;
+  following: boolean; followers: number; createdAt: string; updatedAt: string;
 };
-
+export type Area = {
+  wifi: { label: string; internal: boolean; ssid: string; password: string; note: string }[];
+  guides: { id: string; title: string; body: string }[];
+  bookingNote: string;
+};
 export type Tag = { id: string; number: string; clientId?: string | null; client?: string | null; access: string; status: "active" | "spare" | "lost" | "blocked" | "pending"; hasCode?: boolean };
 export type TagRequest = {
   id: string; clientId: string; kind: "new" | "replace" | "deactivate"; note: string; status: "to_send" | "sent" | "confirmed" | "rejected";
@@ -47,5 +52,3 @@ export type Company = { id: string; name: string };
 export type MailPreview = { sent: boolean; preview: { to: string; subject: string; body: string }; devLink?: string };
 export type Todo = { tagRequests: TagRequest[] };
 
-export type Announcement = { id: string; title: string; body: string; pinned: boolean; createdAt: string; author: string };
-export type Post = { id: string; body: string; createdAt: string; author: string; mine: boolean; canDelete: boolean };

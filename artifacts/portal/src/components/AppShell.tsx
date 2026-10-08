@@ -1,18 +1,19 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, History, Inbox, KeyRound, LayoutDashboard, LogOut, Megaphone, MessageSquare, MessageSquareWarning, Sparkles, Square, Users } from "lucide-react";
+import { Calendar, Inbox, KeyRound, LayoutDashboard, LogOut, Square, UserRound, Users } from "lucide-react";
 import clsx from "clsx";
 import { api, type Me } from "@/lib/api";
 
 const nav = [
-  { href: "/app", label: "Overview", icon: LayoutDashboard, exact: true },
-  { href: "/app/book", label: "Book a room", icon: Calendar },
-  { href: "/app/history", label: "My bookings", icon: History },
-  { href: "/app/announcements", label: "Announcements", icon: Megaphone },
-  { href: "/app/board", label: "Board", icon: MessageSquare },
-  { href: "/app/report", label: "Report", icon: MessageSquareWarning },
-  { href: "/app/office", label: "Office info", icon: Sparkles },
+  { href: "/app", label: "Home", icon: LayoutDashboard, exact: true },
+  { href: "/app/rooms", label: "Rooms", icon: Calendar },
+  { href: "/app/me", label: "Personal area", icon: UserRound },
+];
+const adminNav = [
+  { href: "/app/inbox", label: "Inbox", icon: Inbox },
+  { href: "/app/tags", label: "Tags", icon: KeyRound },
+  { href: "/app/users", label: "Users", icon: Users },
 ];
 
 export default function AppShell({ me, children }: { me: Me; children: ReactNode }) {
@@ -22,7 +23,7 @@ export default function AppShell({ me, children }: { me: Me; children: ReactNode
     mutationFn: () => api("/auth/logout", { method: "POST" }),
     onSuccess: () => { qc.clear(); window.location.href = "/login"; },
   });
-  const items = me.role === "admin" ? [...nav, { href: "/app/inbox", label: "Inbox", icon: Inbox, exact: false }, { href: "/app/tags", label: "Tags", icon: KeyRound, exact: false }, { href: "/app/users", label: "Users", icon: Users, exact: false }] : nav;
+  const items: { href: string; label: string; icon: typeof Inbox; exact?: boolean }[] = me.role === "admin" ? [...nav, ...adminNav] : nav;
   const pending = useQuery({ queryKey: ["inbox-count"], queryFn: () => api<{ pending: number }>("/inbox/count"), enabled: me.role === "admin", refetchInterval: 60_000 });
   const initials = me.name.slice(0, 2).toUpperCase();
 

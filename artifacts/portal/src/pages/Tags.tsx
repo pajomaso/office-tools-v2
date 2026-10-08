@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Mail } from "lucide-react";
 import { api, type AdminTags, type AdminUser, type TagRequest } from "@/lib/api";
-import { Badge, Button, Card, EmptyState, PageHeader, Skeleton, fieldInput, fieldLabel } from "@/components/ui";
+import { Badge, Button, Card, EmptyState, PageHeader, Skeleton, fieldInput, fieldCompact, fieldLabel } from "@/components/ui";
 import { fmtDay, ymd } from "@/lib/time";
 
 export const reqStatus = { to_send: "To send", sent: "Sent to supplier", confirmed: "Confirmed", rejected: "Rejected" } as const;
@@ -50,7 +50,7 @@ function Request({ r, selected, onToggle }: { r: TagRequest; selected: boolean; 
       </div>
       {r.status === "sent" && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          {r.kind !== "deactivate" && <input className={`${fieldInput} max-w-48`} placeholder="Number of the new tag" aria-label="New tag number" value={num} onChange={(e) => setNum(e.target.value)} />}
+          {r.kind !== "deactivate" && <input className={`${fieldCompact} max-w-48`} placeholder="Number of the new tag" aria-label="New tag number" value={num} onChange={(e) => setNum(e.target.value)} />}
           <Button disabled={confirm.isPending || (r.kind !== "deactivate" && !num.trim())} onClick={() => confirm.mutate()}>Supplier confirmed</Button>
           <Button variant="outline" disabled={reject.isPending} onClick={() => reject.mutate()}>Reject</Button>
         </div>
@@ -115,8 +115,8 @@ export default function Tags() {
             <h2 className="mb-1 text-sm font-semibold">Tag supplier</h2>
             <p className="mb-3 text-xs text-[var(--ink-mute)]">Used to address the request email. You can leave it empty until it's known.</p>
             <form className="flex flex-wrap items-end gap-3" onSubmit={(e) => { e.preventDefault(); saveSupplier.mutate(); }}>
-              <div><label className={fieldLabel} htmlFor="sup-name">Company</label><input id="sup-name" className={`${fieldInput} w-56`} value={supplierForm.name} onChange={(e) => setSup({ ...supplierForm, name: e.target.value })} /></div>
-              <div><label className={fieldLabel} htmlFor="sup-email">Email</label><input id="sup-email" type="email" className={`${fieldInput} w-64`} placeholder="supplier@example.com" value={supplierForm.email} onChange={(e) => setSup({ ...supplierForm, email: e.target.value })} /></div>
+              <div><label className={fieldLabel} htmlFor="sup-name">Company</label><input id="sup-name" className={`${fieldCompact} w-56`} value={supplierForm.name} onChange={(e) => setSup({ ...supplierForm, name: e.target.value })} /></div>
+              <div><label className={fieldLabel} htmlFor="sup-email">Email</label><input id="sup-email" type="email" className={`${fieldCompact} w-64`} placeholder="supplier@example.com" value={supplierForm.email} onChange={(e) => setSup({ ...supplierForm, email: e.target.value })} /></div>
               <Button type="submit" variant="outline" className="h-9" disabled={saveSupplier.isPending || sup === null}>{saveSupplier.isPending ? "Saving…" : "Save"}</Button>
               {saveSupplier.isSuccess && sup === null && <span className="pb-2 text-xs text-[var(--ok)]">Saved</span>}
             </form>
@@ -127,11 +127,11 @@ export default function Tags() {
             <h2 className="mb-3 text-sm font-semibold">New request</h2>
             <form className="flex flex-wrap items-end gap-3" onSubmit={(e) => { e.preventDefault(); addReq.mutate(); }}>
               <div><label className={fieldLabel} htmlFor="nr-client">Client</label>
-                <select id="nr-client" required className={`${fieldInput} w-56`} value={nr.clientId} onChange={(e) => setNr({ ...nr, clientId: e.target.value })}>
+                <select id="nr-client" required className={`${fieldCompact} w-56`} value={nr.clientId} onChange={(e) => setNr({ ...nr, clientId: e.target.value })}>
                   <option value="">Select…</option>{clients.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select></div>
               <div><label className={fieldLabel} htmlFor="nr-kind">Type</label>
-                <select id="nr-kind" className={`${fieldInput} w-52`} value={nr.kind} onChange={(e) => setNr({ ...nr, kind: e.target.value })}>
+                <select id="nr-kind" className={`${fieldCompact} w-52`} value={nr.kind} onChange={(e) => setNr({ ...nr, kind: e.target.value })}>
                   {Object.entries(reqKind).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select></div>
               <Button type="submit" disabled={addReq.isPending || !nr.clientId}>Add to log</Button>
@@ -159,10 +159,10 @@ export default function Tags() {
               </table>
             </Card>
             <form className="mt-3 flex flex-wrap items-end gap-3" onSubmit={(e) => { e.preventDefault(); addTag.mutate(); }}>
-              <div><label className={fieldLabel} htmlFor="imp-n">Existing tag</label><input id="imp-n" required className={`${fieldInput} w-32`} value={imp.number} onChange={(e) => setImp({ ...imp, number: e.target.value })} placeholder="0042" /></div>
+              <div><label className={fieldLabel} htmlFor="imp-n">Existing tag</label><input id="imp-n" required className={`${fieldCompact} w-32`} value={imp.number} onChange={(e) => setImp({ ...imp, number: e.target.value })} placeholder="0042" /></div>
               <div><label className={fieldLabel} htmlFor="imp-c">Person</label>
-                <select id="imp-c" className={`${fieldInput} w-52`} value={imp.clientId} onChange={(e) => setImp({ ...imp, clientId: e.target.value })}><option value="">Unassigned</option>{clients.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-              <div><label className={fieldLabel} htmlFor="imp-a">Access</label><input id="imp-a" className={`${fieldInput} w-56`} value={imp.access} onChange={(e) => setImp({ ...imp, access: e.target.value })} placeholder="Front door, 24/7" /></div>
+                <select id="imp-c" className={`${fieldCompact} w-52`} value={imp.clientId} onChange={(e) => setImp({ ...imp, clientId: e.target.value })}><option value="">Unassigned</option>{clients.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+              <div><label className={fieldLabel} htmlFor="imp-a">Access</label><input id="imp-a" className={`${fieldCompact} w-56`} value={imp.access} onChange={(e) => setImp({ ...imp, access: e.target.value })} placeholder="Front door, 24/7" /></div>
               <Button type="submit" variant="outline" className="h-9" disabled={addTag.isPending}>Add tag</Button>
             </form>
             {addTag.isError && <p role="alert" className="mt-2 text-sm text-[var(--danger)]">{addTag.error.message}</p>}

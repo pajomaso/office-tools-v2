@@ -58,22 +58,26 @@ function MessageRow({ m }: { m: Message }) {
 function MessagesSection() {
   const qc = useQueryClient();
   const msgs = useQuery({ queryKey: ["messages"], queryFn: () => api<Messages>("/messages"), refetchInterval: 60_000 });
-  const [body, setBody] = useState(""), [days, setDays] = useState(7), [past, setPast] = useState(false);
-  const post = useMutation({ mutationFn: () => api("/messages", { method: "POST", json: { body, days } }), onSuccess: () => { setBody(""); setDays(7); qc.invalidateQueries({ queryKey: ["messages"] }); } });
+  const [body, setBody] = useState(""), [days, setDays] = useState(7), [past, setPast] = useState(false), [all, setAll] = useState(false), [compose, setCompose] = useState(false);
+  const LIMIT = 3;
+  const post = useMutation({ mutationFn: () => api("/messages", { method: "POST", json: { body, days } }), onSuccess: () => { setBody(""); setDays(7); setCompose(false); qc.invalidateQueries({ queryKey: ["messages"] }); } });
   return (
     <section aria-label="Messages">
-      <h2 className="mb-2 text-sm font-semibold">Messages</h2>
-      <form className="mb-3 flex flex-col gap-2" onSubmit={(e) => { e.preventDefault(); post.mutate(); }}>
+      <div className="mb-2 flex items-center justify-between"><h2 className="text-sm font-semibold">Messages</h2><Button variant="outline" onClick={() => setCompose(!compose)}><Plus className="size-3.5" />New message</Button></div>
+      {compose && <form className="mb-3 flex flex-col gap-2" onSubmit={(e) => { e.preventDefault(); post.mutate(); }}>
         <label htmlFor="msg-body" className="sr-only">New message</label>
-        <textarea id="msg-body" rows={2} maxLength={1000} className={clsx(fieldInput, "h-auto py-2")} placeholder="Share something with the office — lunch plans, a heads-up, a lost umbrella…" value={body} onChange={(e) => setBody(e.target.value)} />
+        <textarea id="msg-body" autoFocus rows={2} maxLength={1000} className={clsx(fieldInput, "h-auto py-2")} placeholder="Share something with the office — lunch plans, a heads-up, a lost umbrella…" value={body} onChange={(e) => setBody(e.target.value)} />
         <div className="flex flex-wrap items-center gap-2">
           <label htmlFor="msg-days" className="text-xs text-[var(--ink-mute)]">Show for</label>
           <select id="msg-days" className={`${fieldCompact} w-32`} value={days} onChange={(e) => setDays(Number(e.target.value))}>{messageDays.map(([d, l]) => <option key={d} value={d}>{l}</option>)}</select>
           <Button type="submit" className="ml-auto" disabled={post.isPending || !body.trim()}>{post.isPending ? "Posting…" : "Post"}</Button>
         </div>
         {post.isError && <p role="alert" className="text-sm text-[var(--danger)]">{post.error.message}</p>}
-      </form>
-      {msgs.isLoading ? <Skeleton className="h-20" /> : msgs.data?.current.length ? <ul className="flex flex-col gap-2">{msgs.data.current.map((m) => <MessageRow key={m.id + m.expiresAt} m={m} />)}</ul> : <p className="text-sm text-[var(--ink-mute)]">No messages right now.</p>}
+      </form>}
+      {msgs.isLoading ? <Skeleton className="h-20" /> : msgs.data?.current.length ? <>
+        <ul className="flex flex-col gap-2">{(all ? msgs.data.current : msgs.data.current.slice(0, LIMIT)).map((m) => <MessageRow key={m.id + m.expiresAt} m={m} />)}</ul>
+        {msgs.data.current.length > LIMIT && <button type="button" onClick={() => setAll(!all)} className="mt-2 text-xs font-medium text-[var(--brand)] hover:underline cursor-pointer">{all ? "Show fewer" : `Show all current messages (${msgs.data.current.length})`}</button>}
+      </> : <p className="text-sm text-[var(--ink-mute)]">No messages right now.</p>}
       {!!msgs.data?.past.length && (
         <div className="mt-3">
           <button type="button" onClick={() => setPast(!past)} className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--brand)] hover:underline cursor-pointer">{past ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}{past ? "Hide" : "Show"} past messages ({msgs.data.past.length})</button>
@@ -116,20 +120,16 @@ function ItemRow({ i }: { i: Item }) {
   );
 }
 
-function ItemsSection() {
+function ItemsSection({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void }) {
   const qc = useQueryClient();
   const items = useQuery({ queryKey: ["items"], queryFn: () => api<Item[]>("/items"), refetchInterval: 60_000 });
-  const [open, setOpen] = useState(false);
   const [f, setF] = useState({ title: "", body: "", kind: "issue", visibility: "public" });
   const send = useMutation({ mutationFn: () => api("/items", { method: "POST", json: f }), onSuccess: () => { setF({ title: "", body: "", kind: "issue", visibility: "public" }); setOpen(false); qc.invalidateQueries({ queryKey: ["items"] }); } });
   const active = items.data?.filter((i) => i.status !== "done") ?? [];
   const followed = active.filter((i) => i.following);
   return (
     <section aria-label="Open issues and requests">
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Open issues and requests</h2>
-        <Button variant="outline" onClick={() => setOpen(!open)}><Plus className="size-3.5" />New issue or request</Button>
-      </div>
+      <h2 className="mb-2 text-sm font-semibold">Public and my open issues and requests</h2>
       {open && (
         <Card className="mb-3 p-4">
           <form className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); send.mutate(); }}>
@@ -137,7 +137,7 @@ function ItemsSection() {
               <div><label className={fieldLabel} htmlFor="it-kind">Type</label><select id="it-kind" className={fieldInput} value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}><option value="issue">Issue (something is broken)</option><option value="request">Request (I need something)</option></select></div>
               <div><label className={fieldLabel} htmlFor="it-vis">Who can see it</label><select id="it-vis" className={fieldInput} value={f.visibility} onChange={(e) => setF({ ...f, visibility: e.target.value })}><option value="public">Everyone</option><option value="private">Only me and the admins</option></select></div>
             </div>
-            <div><label className={fieldLabel} htmlFor="it-title">Title</label><input id="it-title" required maxLength={140} className={fieldInput} placeholder={f.kind === "issue" ? "Projector in Alfa won't turn on" : "More coffee capsules"} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></div>
+            <div><label className={fieldLabel} htmlFor="it-title">Title</label><input id="it-title" required autoFocus maxLength={140} className={fieldInput} placeholder={f.kind === "issue" ? "Projector in Alfa won't turn on" : "More coffee capsules"} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></div>
             <div><label className={fieldLabel} htmlFor="it-body">Details (optional)</label><textarea id="it-body" rows={2} maxLength={2000} className={clsx(fieldInput, "h-auto py-2")} value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} /></div>
             {send.isError && <p role="alert" className="text-sm text-[var(--danger)]">{send.error.message}</p>}
             <div className="flex gap-2"><Button type="submit" disabled={send.isPending || !f.title.trim()}>{send.isPending ? "Sending…" : "Send"}</Button><Button type="button" variant="outline" className="h-9" onClick={() => setOpen(false)}>Close</Button></div>
@@ -163,6 +163,7 @@ export default function Home({ me }: { me: Me }) {
   const bookings = useQuery({ queryKey: ["bookings", "today", from], queryFn: () => api<Booking[]>(`/bookings?from=${from}&to=${to}`), refetchInterval: 60_000 });
   const [draft, setDraft] = useState<Draft | null>(null);
   const [editing, setEditing] = useState<Booking | null>(null);
+  const [newItem, setNewItem] = useState(false);
   const now = new Date();
   const room = (id: string) => rooms.data?.find((r) => r.id === id);
   const bookNow = (roomId?: string) => {
@@ -179,7 +180,9 @@ export default function Home({ me }: { me: Me }) {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader title={`Hello, ${me.name.split(" ")[0]}`} subtitle={fmtDay(today, { weekday: "long", day: "numeric", month: "long" })} />
+      <PageHeader title={`Hello, ${me.name.split(" ")[0]}`} subtitle={fmtDay(today, { weekday: "long", day: "numeric", month: "long" })} actions={<Button onClick={() => { setNewItem(true); setTimeout(() => document.getElementById("it-title")?.scrollIntoView({ block: "center" }), 50); }}><Plus className="size-3.5" />New issue or request</Button>} />
+
+      <MessagesSection />
 
       <section aria-label="Today's room bookings">
         <div className="mb-2 flex items-center justify-between"><h2 className="text-sm font-semibold">Today's room bookings</h2><Link href="/app/rooms" className="text-xs font-medium text-[var(--brand)] hover:underline">Open calendar →</Link></div>
@@ -197,13 +200,10 @@ export default function Home({ me }: { me: Me }) {
         ) : <p className="text-sm text-[var(--ink-mute)]">No rooms are booked today.</p>}
       </section>
 
-      <MessagesSection />
-      <ItemsSection />
-
       <section aria-label="Rooms">
         <h2 className="mb-2 text-sm font-semibold">Rooms</h2>
         {rooms.isLoading ? <Skeleton className="h-32" /> : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {rooms.data?.map((r) => {
               const st = statusOf(r);
               return (
@@ -222,6 +222,8 @@ export default function Home({ me }: { me: Me }) {
           </div>
         )}
       </section>
+
+      <ItemsSection open={newItem} setOpen={setNewItem} />
 
       {draft && rooms.data && <BookingDialog rooms={rooms.data} draft={draft} note={area.data?.bookingNote} onClose={() => setDraft(null)} />}
       {editing && rooms.data && <BookingDialog rooms={rooms.data} booking={editing} onClose={() => setEditing(null)} />}

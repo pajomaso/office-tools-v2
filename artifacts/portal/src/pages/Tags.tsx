@@ -6,6 +6,7 @@ import { api, type AdminTags, type AdminUser, type Company, type TagBatch, type 
 import { Badge, Button, Card, Dialog, EmptyState, PageHeader, Skeleton, fieldCompact, fieldInput, fieldLabel } from "@/components/ui";
 import { eventLabel, levelLabel, lineText, statusLabel } from "@/lib/tags";
 import { fmtDay, hm, ymd } from "@/lib/time";
+import { askConfirm } from "@/components/Confirm";
 
 const KEYS = ["admin-tags", "tag-log", "tag-notifications", "inbox-count", "admin-users"];
 const refresh = (qc: ReturnType<typeof useQueryClient>) => KEYS.forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
@@ -57,7 +58,7 @@ function PendingBatch({ batch, supplierEmail }: { batch: TagBatch | null; suppli
     <section aria-label="Pending batch">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-sm font-semibold">Pending batch for Ricardo ({lines.length})</h2>
-        <Button disabled={!lines.length || send.isPending} onClick={() => confirm(`Send ${lines.length} change${lines.length === 1 ? "" : "s"} to Ricardo? You'll get a link to share.`) && send.mutate()}>{send.isPending ? "Sending…" : "Send to Ricardo"}</Button>
+        <Button disabled={!lines.length || send.isPending} onClick={() => askConfirm(`Send ${lines.length} change${lines.length === 1 ? "" : "s"} to Ricardo? You'll get a link to share.`).then((ok) => ok && send.mutate())}>{send.isPending ? "Sending…" : "Send to Ricardo"}</Button>
       </div>
       {lines.length ? (
         <ul className="flex flex-col gap-2">{lines.map((l) => (
@@ -89,8 +90,8 @@ function SentBatch({ b, supplierEmail }: { b: TagBatch; supplierEmail?: string }
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div><div className="text-sm font-semibold">Sent {b.sentAt ? when(b.sentAt) : ""} · {doneCount} of {live.length} done</div><div className="text-xs text-[var(--ink-mute)]">{linkState}</div></div>
         <div className="flex gap-2">
-          <Button variant="outline" disabled={regen.isPending} onClick={() => confirm("Make a new link? The old one stops working.") && regen.mutate()}>New link</Button>
-          {b.linkActive && <Button variant="outline" disabled={revoke.isPending} onClick={() => confirm("Revoke the link? Ricardo will no longer be able to open it.") && revoke.mutate()}>Revoke link</Button>}
+          <Button variant="outline" disabled={regen.isPending} onClick={() => askConfirm("Make a new link? The old one stops working.").then((ok) => ok && regen.mutate())}>New link</Button>
+          {b.linkActive && <Button variant="outline" disabled={revoke.isPending} onClick={() => askConfirm("Revoke the link? Ricardo will no longer be able to open it.").then((ok) => ok && revoke.mutate())}>Revoke link</Button>}
         </div>
       </div>
       <ul className="mt-3 divide-y divide-[var(--line)]">
@@ -98,8 +99,8 @@ function SentBatch({ b, supplierEmail }: { b: TagBatch; supplierEmail?: string }
           <li key={l.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
             <span className={clsx("text-sm", l.status !== "pending" && "text-[var(--ink-soft)]")}>{lineText(l)}</span>
             <span className="flex items-center gap-2">
-              {l.status === "pending" && <><Badge tone="brand">Waiting</Badge><Button variant="outline" disabled={line.isPending} onClick={() => confirm("Mark this as done on Ricardo's behalf? Use this if he confirmed another way.") && line.mutate({ id: l.id, act: "done" })}>Mark done</Button></>}
-              {l.status === "done" && <><span className="text-xs text-[var(--ok)]">✓ {l.doneBy} · {l.doneAt && when(l.doneAt)}</span><button type="button" className="text-xs text-[var(--brand)] hover:underline cursor-pointer" disabled={line.isPending} onClick={() => confirm("Undo this? The tag goes back to how it was.") && line.mutate({ id: l.id, act: "reopen" })}>Undo</button></>}
+              {l.status === "pending" && <><Badge tone="brand">Waiting</Badge><Button variant="outline" disabled={line.isPending} onClick={() => askConfirm("Mark this as done on Ricardo's behalf? Use this if he confirmed another way.").then((ok) => ok && line.mutate({ id: l.id, act: "done" }))}>Mark done</Button></>}
+              {l.status === "done" && <><span className="text-xs text-[var(--ok)]">✓ {l.doneBy} · {l.doneAt && when(l.doneAt)}</span><button type="button" className="text-xs text-[var(--brand)] hover:underline cursor-pointer" disabled={line.isPending} onClick={() => askConfirm("Undo this? The tag goes back to how it was.").then((ok) => ok && line.mutate({ id: l.id, act: "reopen" }))}>Undo</button></>}
               {l.status === "outdated" && <Badge>Out of date: not applied</Badge>}
             </span>
           </li>

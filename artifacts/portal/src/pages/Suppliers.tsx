@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Mail, Phone, Plus } from "lucide-react";
 import { api, type Supplier } from "@/lib/api";
 import { Button, Card, Dialog, EmptyState, PageHeader, Skeleton, fieldInput, fieldLabel } from "@/components/ui";
+import { askConfirm } from "@/components/Confirm";
 
 const blank = { name: "", what: "", contactName: "", phone: "", email: "", notes: "" };
 
@@ -28,7 +29,7 @@ function SupplierDialog({ supplier, onClose }: { supplier: Supplier | null; onCl
         <div><label className={fieldLabel} htmlFor="s-notes">Notes</label><textarea id="s-notes" rows={3} className={`${fieldInput} h-auto py-2`} placeholder="Opening hours, contract, who to ask for…" value={f.notes} onChange={set("notes")} /></div>
         {(save.isError || del.isError) && <p role="alert" className="text-sm text-[var(--danger)]">{(save.error ?? del.error)!.message}</p>}
         <div className="flex items-center justify-between">
-          <div>{supplier && <Button type="button" variant="outline" className="h-9 text-[var(--danger)]" disabled={del.isPending} onClick={() => confirm(`Delete ${supplier.name}? Issues that mention it will just lose the link.`) && del.mutate()}>Delete</Button>}</div>
+          <div>{supplier && <Button type="button" variant="outline" className="h-9 text-[var(--danger)]" disabled={del.isPending} onClick={() => askConfirm(`Delete ${supplier.name}? Issues that mention it will just lose the link.`).then((ok) => ok && del.mutate())}>Delete</Button>}</div>
           <div className="flex gap-2"><Button type="button" variant="outline" className="h-9" onClick={onClose}>Close</Button><Button type="submit" disabled={save.isPending}>Save</Button></div>
         </div>
       </form>

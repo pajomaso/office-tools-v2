@@ -8,6 +8,7 @@ import BookingDialog, { type Draft } from "@/components/BookingDialog";
 import RoomPhoto from "@/components/RoomPhoto";
 import EditRoomDialog from "@/components/EditRoomDialog";
 import { addDays, endOptions, fmtDay, hm, hourOf, lisbonToUtc, mondayOf, plusHour, startOptions, todayStr, ymd } from "@/lib/time";
+import { askConfirm } from "@/components/Confirm";
 
 const ROW = 36; // px per hour; the grid shows all 24 hours and opens scrolled to 08:00
 const blockLabel = { cleaning: "Cleaning", maintenance: "Maintenance" } as const;
@@ -76,7 +77,7 @@ function Calendar({ week, rooms, filter, bookings, blocks, me, onPick, onEdit, o
               }}>
               {Array.from({ length: 24 }, (_, h) => <div key={h} style={{ height: ROW }} className={clsx("pointer-events-none border-b", h === 7 || h === 19 ? "border-[var(--line-strong)]" : "border-[var(--line)]")} />)}
               {blocks.filter((b) => ymd(b.startsAt) === d && (filter === "all" || !b.roomId || b.roomId === filter)).map((b) => (
-                <button key={b.id} type="button" disabled={me.role !== "admin"} onClick={() => confirm(`Remove this ${b.kind} slot?`) && onBlock(b)} style={place(b.startsAt, b.endsAt)}
+                <button key={b.id} type="button" disabled={me.role !== "admin"} onClick={() => askConfirm(`Remove this ${b.kind} slot?`).then((ok) => ok && onBlock(b))} style={place(b.startsAt, b.endsAt)}
                   className="absolute inset-x-0.5 overflow-hidden rounded-md border border-dashed border-[var(--line-strong)] bg-[repeating-linear-gradient(135deg,var(--surface-2),var(--surface-2)_6px,transparent_6px,transparent_12px)] px-1 text-left text-[10px] font-medium text-[var(--ink-soft)] enabled:cursor-pointer"
                   title={`${blockLabel[b.kind]}${b.title ? ` · ${b.title}` : ""}${b.roomId ? ` · ${name(b.roomId)}` : " · all rooms"}`}>{blockLabel[b.kind]}</button>
               ))}

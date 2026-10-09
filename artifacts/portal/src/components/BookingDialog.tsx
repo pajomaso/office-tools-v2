@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { api, type Booking, type Room } from "@/lib/api";
 import { Button, Dialog, fieldInput, fieldLabel } from "@/components/ui";
 import { endOptions, hm, startOptions, ymd } from "@/lib/time";
+import { askConfirm } from "@/components/Confirm";
 
 export type Draft = { date: string; start: string; end: string; roomId?: string };
 export const refreshBookings = (qc: ReturnType<typeof useQueryClient>) => ["bookings", "my-bookings"].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
@@ -70,7 +71,7 @@ export default function BookingDialog({ rooms, draft, booking, note, onClose }: 
         <p className="text-xs text-[var(--ink-mute)]">Times are Braga time (Europe/Lisbon).{editing && booking.owner && !booking.mine ? ` Booked by ${booking.owner}.` : ""}</p>
         {err && <p role="alert" className="text-sm text-[var(--danger)]">{err.message}</p>}
         <div className="flex items-center justify-between gap-2">
-          <div>{editing && <Button type="button" variant="outline" className="h-9 text-[var(--danger)]" disabled={cancel.isPending} onClick={() => confirm("Cancel this reservation? The room will be free for others.") && cancel.mutate()}>Cancel reservation</Button>}</div>
+          <div>{editing && <Button type="button" variant="outline" className="h-9 text-[var(--danger)]" disabled={cancel.isPending} onClick={() => askConfirm("Cancel this reservation? The room will be free for others.").then((ok) => ok && cancel.mutate())}>Cancel reservation</Button>}</div>
           <div className="flex gap-2">
             <Button type="button" variant="outline" className="h-9" onClick={onClose}>Close</Button>
             <Button type="submit" disabled={save.isPending}>{save.isPending ? "Saving…" : editing ? "Save" : "Create"}</Button>

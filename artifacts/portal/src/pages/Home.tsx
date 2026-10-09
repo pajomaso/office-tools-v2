@@ -9,6 +9,7 @@ import BookingDialog, { type Draft } from "@/components/BookingDialog";
 import RoomPhoto from "@/components/RoomPhoto";
 import { itemKind, itemStatus, messageDays } from "@/lib/labels";
 import { addDays, fmtDay, hm, lisbonToUtc, plusHour, todayStr, ymd } from "@/lib/time";
+import { askConfirm } from "@/components/Confirm";
 
 // ── Messages ────────────────────────────────────────────────────────────────
 function MessageRow({ m }: { m: Message }) {
@@ -46,7 +47,7 @@ function MessageRow({ m }: { m: Message }) {
           <div className="flex shrink-0 gap-1">
             {m.canPin && <button aria-label={m.pinned ? "Unpin message" : "Pin message"} onClick={() => patch.mutate({ pinned: !m.pinned })} className="grid size-7 place-items-center rounded-md text-[var(--ink-mute)] hover:bg-[var(--surface-2)] cursor-pointer"><Pin className="size-3.5" /></button>}
             {m.canEdit && <button aria-label="Edit message" onClick={() => setEditing(true)} className="grid size-7 place-items-center rounded-md text-[var(--ink-mute)] hover:bg-[var(--surface-2)] cursor-pointer"><Pencil className="size-3.5" /></button>}
-            {m.canDelete && <button aria-label="Delete message" onClick={() => confirm("Delete this message?") && del.mutate()} className="grid size-7 place-items-center rounded-md text-[var(--danger)] hover:bg-[var(--surface-2)] cursor-pointer"><Trash2 className="size-3.5" /></button>}
+            {m.canDelete && <button aria-label="Delete message" onClick={() => askConfirm("Delete this message?").then((ok) => ok && del.mutate())} className="grid size-7 place-items-center rounded-md text-[var(--danger)] hover:bg-[var(--surface-2)] cursor-pointer"><Trash2 className="size-3.5" /></button>}
           </div>
         </div>
       )}

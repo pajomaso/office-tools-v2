@@ -16,6 +16,7 @@ import Tags from "@/pages/Tags";
 import Users from "@/pages/Users";
 import Account from "@/pages/Account";
 import Access from "@/pages/Access";
+import { ConfirmHost } from "@/components/Confirm";
 
 function Authed() {
   const { data: me, isLoading, isError } = useQuery({ queryKey: ["me"], queryFn: () => api<Me>("/me") });
@@ -43,7 +44,7 @@ function Authed() {
   );
 }
 
-export default function App() {
+function Routes() {
   const [loc] = useLocation();
   if (loc === "/app" || loc.startsWith("/app/")) return <Authed />;
   if (loc.startsWith("/access/")) return <Access />; // the supplier's page: no sign-in, the secret link is the credential
@@ -53,4 +54,8 @@ export default function App() {
       <Route><Redirect to="/app" /></Route>
     </Switch>
   );
+}
+
+export default function App() {
+  return <><Routes /><ConfirmHost /></>;
 }

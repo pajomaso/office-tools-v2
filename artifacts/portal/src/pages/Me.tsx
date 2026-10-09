@@ -4,6 +4,7 @@ import { Check, ChevronDown, Copy, Eye, EyeOff, KeyRound, Wifi } from "lucide-re
 import { Link } from "wouter";
 import { api, type Area, type Me, type MyTag } from "@/lib/api";
 import { Badge, Button, Card, PageHeader, Skeleton } from "@/components/ui";
+import { askConfirm } from "@/components/Confirm";
 
 function CopyButton({ value, label }: { value: string; label: string }) {
   const [done, setDone] = useState(false);
@@ -61,9 +62,9 @@ function TagCard() {
       {pending && <p className="mt-4 rounded-md bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--ink-soft)]"><Badge tone="brand">Pending</Badge> <span className="ml-1">{pendingText[pending.kind]}</span></p>}
       {sent && <p role="status" className="mt-3 text-sm text-[var(--ok)]">{sentText[sent as keyof typeof sentText]}</p>}
       <div className="mt-4 flex flex-wrap gap-2">
-        {!hasTag && <Button variant="outline" disabled={ask.isPending} onClick={() => confirm("Ask the admins for an access tag?") && ask.mutate("new")}>Request a tag</Button>}
-        {tag && !pending && <Button variant="outline" disabled={ask.isPending} onClick={() => confirm("Tell the admins your tag is lost and ask for a replacement?") && ask.mutate("lost")}>I lost my tag</Button>}
-        {hasTag && <Button variant="outline" disabled={ask.isPending} onClick={() => confirm("Ask the admins for a new door code?") && ask.mutate("code")}>Request a new code</Button>}
+        {!hasTag && <Button variant="outline" disabled={ask.isPending} onClick={() => askConfirm("Ask the admins for an access tag?").then((ok) => ok && ask.mutate("new"))}>Request a tag</Button>}
+        {tag && !pending && <Button variant="outline" disabled={ask.isPending} onClick={() => askConfirm("Tell the admins your tag is lost and ask for a replacement?").then((ok) => ok && ask.mutate("lost"))}>I lost my tag</Button>}
+        {hasTag && <Button variant="outline" disabled={ask.isPending} onClick={() => askConfirm("Ask the admins for a new door code?").then((ok) => ok && ask.mutate("code"))}>Request a new code</Button>}
       </div>
       {ask.isError && <p role="alert" className="mt-2 text-sm text-[var(--danger)]">{ask.error.message}</p>}
     </Card>

@@ -188,7 +188,7 @@ export default function Home({ me }: { me: Me }) {
             {bookings.data.map((b) => (
               <li key={b.id}>
                 <button type="button" disabled={!b.canEdit} onClick={() => setEditing(b)} className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left enabled:hover:bg-[var(--surface-2)] enabled:cursor-pointer">
-                  <span className="flex min-w-0 items-center gap-2.5"><span className="size-2 shrink-0 rounded-full" style={{ background: room(b.roomId)?.color }} /><span className="truncate text-sm"><span className="font-medium">{room(b.roomId)?.name}</span> · {b.title ?? "Reserved"}{b.bookedFor ? ` (for ${b.bookedFor})` : ""}</span></span>
+                  <span className="flex min-w-0 items-center gap-2.5"><span className="size-2 shrink-0 rounded-full" style={{ background: room(b.roomId)?.color }} /><span className="truncate text-sm"><span className="font-medium">{room(b.roomId)?.name}</span> · {b.title ?? "Reserved"}{b.bookedFor ? ` (for ${b.bookedFor})` : ""}{b.owner && !b.mine ? <span className="text-[var(--ink-mute)]"> · {b.owner}</span> : null}</span></span>
                   <span className="tnum shrink-0 text-xs text-[var(--ink-soft)]">{hm(b.startsAt)} – {hm(b.endsAt)}</span>
                 </button>
               </li>

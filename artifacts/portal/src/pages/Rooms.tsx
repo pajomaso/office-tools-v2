@@ -84,8 +84,8 @@ function Calendar({ week, rooms, filter, bookings, blocks, me, onPick, onEdit, o
                 <button key={b.id} type="button" disabled={!b.canEdit} onClick={() => onEdit(b)} style={{ ...place(b.startsAt, b.endsAt), ...(filter === "all" ? { borderLeft: `3px solid ${color(b.roomId)}` } : {}) }}
                   className={clsx("absolute inset-x-0.5 overflow-hidden rounded-md border px-1 py-0.5 text-left text-[10px] leading-tight enabled:cursor-pointer",
                     b.mine ? "border-[color-mix(in_oklch,var(--brand)_50%,transparent)] bg-[color-mix(in_oklch,var(--brand)_14%,var(--surface))] text-[var(--brand-ink)]" : "border-[var(--line-strong)] bg-[var(--surface-2)] text-[var(--ink-mute)]")}
-                  title={b.canEdit ? `${b.title} · ${name(b.roomId)}${b.bookedFor ? ` · for ${b.bookedFor}` : ""}` : "Reserved"}>
-                  <div className="truncate font-semibold">{b.canEdit ? b.title : "Reserved"}</div>
+                  title={b.canEdit ? `${b.title} · ${name(b.roomId)}${b.bookedFor ? ` · for ${b.bookedFor}` : ""} · ${b.owner}` : `Reserved by ${b.owner} · ${name(b.roomId)}`}>
+                  <div className="truncate font-semibold">{b.canEdit ? b.title : b.owner}</div>
                   <div className="tnum truncate opacity-80">{hm(b.startsAt)}–{hm(b.endsAt)}{filter === "all" ? ` · ${name(b.roomId)}` : ""}</div>
                 </button>
               ))}
@@ -101,7 +101,7 @@ function BookingList({ bookings, blocks, rooms, filter, onEdit }: { bookings: Bo
   type Entry = { key: string; at: string; end: string; room: string; roomColor?: string; text: string; sub?: string; booking?: Booking };
   const room = (id: string | null) => rooms.find((r) => r.id === id);
   const entries: Entry[] = [
-    ...bookings.filter((b) => filter === "all" || b.roomId === filter).map((b) => ({ key: b.id, at: b.startsAt, end: b.endsAt, room: room(b.roomId)?.name ?? "", roomColor: room(b.roomId)?.color, text: b.canEdit ? (b.title ?? "") : "Reserved", sub: b.canEdit ? [b.bookedFor ? `for ${b.bookedFor}` : "", b.owner && !b.mine ? `by ${b.owner}` : ""].filter(Boolean).join(" · ") : undefined, booking: b })),
+    ...bookings.filter((b) => filter === "all" || b.roomId === filter).map((b) => ({ key: b.id, at: b.startsAt, end: b.endsAt, room: room(b.roomId)?.name ?? "", roomColor: room(b.roomId)?.color, text: b.canEdit ? (b.title ?? "") : "Reserved", sub: [b.bookedFor ? `for ${b.bookedFor}` : "", b.owner && !b.mine ? `by ${b.owner}` : ""].filter(Boolean).join(" · ") || undefined, booking: b })),
     ...blocks.filter((b) => filter === "all" || !b.roomId || b.roomId === filter).map((b) => ({ key: b.id, at: b.startsAt, end: b.endsAt, room: b.roomId ? room(b.roomId)?.name ?? "" : "All rooms", text: blockLabel[b.kind], sub: b.title })),
   ].sort((a, b) => +new Date(a.at) - +new Date(b.at));
   if (!entries.length) return <p className="rounded-[var(--r-lg)] border border-dashed border-[var(--line-strong)] px-6 py-10 text-center text-sm text-[var(--ink-mute)]">Nothing booked this week.</p>;

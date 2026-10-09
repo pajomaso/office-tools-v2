@@ -105,13 +105,13 @@ router.delete("/portal/admin/blocks/:id", managerGuard, asyncRoute(async (req, r
 
 // ── Bookings ────────────────────────────────────────────────────────────────
 // Bookings are in the booker's own name; anyone can book for someone else and say who it's for.
-// Others see only that a slot is reserved. Admins see and can change everything.
+// Others see who booked it, but not the title or notes. Admins see and can change everything.
 type Row = { b: typeof portalBookingsTable.$inferSelect; owner: string };
 const shape = (r: Row, me: Authed["client"]) => {
   const mine = r.b.clientId === me.id, full = mine || me.role === "admin";
   return {
-    id: r.b.id, roomId: r.b.roomId, startsAt: r.b.startsAt.toISOString(), endsAt: r.b.endsAt.toISOString(), mine, canEdit: full,
-    ...(full ? { title: r.b.title, bookedFor: r.b.bookedFor, notes: r.b.notes, owner: r.owner } : {}),
+    id: r.b.id, roomId: r.b.roomId, startsAt: r.b.startsAt.toISOString(), endsAt: r.b.endsAt.toISOString(), mine, canEdit: full, owner: r.owner,
+    ...(full ? { title: r.b.title, bookedFor: r.b.bookedFor, notes: r.b.notes } : {}),
   };
 };
 const withOwner = () => db.select({ b: portalBookingsTable, owner: portalClientsTable.name }).from(portalBookingsTable).innerJoin(portalClientsTable, eq(portalClientsTable.id, portalBookingsTable.clientId));

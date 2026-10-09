@@ -10,15 +10,23 @@ const nav = [
   { href: "/app/rooms", label: "Rooms", icon: Calendar },
   { href: "/app/me", label: "Personal area", icon: UserRound },
 ];
-const adminNav = [
-  { href: "/app/dashboard", label: "Dashboard", icon: Gauge },
-  { href: "/app/issues", label: "Issues", icon: Columns3 },
-  { href: "/app/bookings", label: "Bookings", icon: CalendarClock },
-  { href: "/app/metrics", label: "Metrics", icon: Activity },
-  { href: "/app/suppliers", label: "Suppliers", icon: Truck },
-  { href: "/app/tags", label: "Tags", icon: KeyRound },
-  { href: "/app/users", label: "Users", icon: Users },
-  { href: "/app/settings", label: "Settings", icon: SettingsIcon },
+type NavItem = { href: string; label: string; icon: typeof Gauge; exact?: boolean };
+// Admin menu, grouped by what the admin is doing; the most-checked pages come first.
+const adminGroups: { title: string; items: NavItem[] }[] = [
+  { title: "Management", items: [
+    { href: "/app/dashboard", label: "Dashboard", icon: Gauge },
+    { href: "/app/tags", label: "Tags", icon: KeyRound },
+    { href: "/app/users", label: "Users", icon: Users },
+    { href: "/app/settings", label: "Settings", icon: SettingsIcon },
+  ] },
+  { title: "Maintenance", items: [
+    { href: "/app/issues", label: "Issues", icon: Columns3 },
+    { href: "/app/suppliers", label: "Suppliers", icon: Truck },
+  ] },
+  { title: "Bookings", items: [
+    { href: "/app/bookings", label: "Booking history", icon: CalendarClock },
+    { href: "/app/metrics", label: "Metrics", icon: Activity },
+  ] },
 ];
 
 export default function AppShell({ me, children }: { me: Me; children: ReactNode }) {
@@ -28,7 +36,8 @@ export default function AppShell({ me, children }: { me: Me; children: ReactNode
     mutationFn: () => api("/auth/logout", { method: "POST" }),
     onSuccess: () => { qc.clear(); window.location.href = "/login"; },
   });
-  const items: { href: string; label: string; icon: typeof Gauge; exact?: boolean }[] = me.role === "admin" ? [...nav, ...adminNav] : nav;
+  const groups: { title?: string; items: NavItem[] }[] = me.role === "admin" ? [{ items: nav }, ...adminGroups] : [{ items: nav }];
+  const items = groups.flatMap((g) => g.items);
   const pending = useQuery({ queryKey: ["inbox-count"], queryFn: () => api<{ pending: number }>("/inbox/count"), enabled: me.role === "admin", refetchInterval: 60_000 });
   const initials = me.name.slice(0, 2).toUpperCase();
 
@@ -43,18 +52,23 @@ export default function AppShell({ me, children }: { me: Me; children: ReactNode
               <div className="text-[11px] uppercase tracking-wide text-[var(--ink-mute)]">{me.name}</div>
             </div>
           </div>
-          <nav className="flex flex-col gap-0.5">
-            {items.map(({ href, label, icon: Icon, exact }) => {
-              const active = exact ? loc === href : loc === href || loc.startsWith(href + "/");
-              return (
-                <Link key={href} href={href} className={clsx("relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors", active ? "bg-[var(--surface-2)] text-[var(--ink)]" : "text-[var(--ink-soft)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]")}>
-                  {active && <span className="absolute top-1.5 bottom-1.5 left-0 w-0.5 rounded-full bg-[var(--brand)]" />}
-                  <Icon className={clsx("size-4", active ? "text-[var(--brand)]" : "text-[var(--ink-mute)]")} />
-                  {label}
-                  {href === "/app/dashboard" && !!pending.data?.pending && <span className="tnum ml-auto rounded-full bg-[var(--brand)] px-1.5 text-[10px] font-semibold text-white">{pending.data.pending}</span>}
-                </Link>
-              );
-            })}
+          <nav className="flex flex-col gap-4">
+            {groups.map((g, i) => (
+              <div key={g.title ?? i} className="flex flex-col gap-0.5">
+                {g.title && <div className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--ink-mute)]">{g.title}</div>}
+                {g.items.map(({ href, label, icon: Icon, exact }) => {
+                  const active = exact ? loc === href : loc === href || loc.startsWith(href + "/");
+                  return (
+                    <Link key={href} href={href} className={clsx("relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors", active ? "bg-[var(--surface-2)] text-[var(--ink)]" : "text-[var(--ink-soft)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]")}>
+                      {active && <span className="absolute top-1.5 bottom-1.5 left-0 w-0.5 rounded-full bg-[var(--brand)]" />}
+                      <Icon className={clsx("size-4", active ? "text-[var(--brand)]" : "text-[var(--ink-mute)]")} />
+                      {label}
+                      {href === "/app/dashboard" && !!pending.data?.pending && <span className="tnum ml-auto rounded-full bg-[var(--brand)] px-1.5 text-[10px] font-semibold text-white">{pending.data.pending}</span>}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
           <div className="mt-auto flex items-center gap-2.5 rounded-[var(--r-lg)] border border-[var(--line)] bg-[var(--surface)] p-2.5 shadow-[var(--shadow-sm)]">
             <span className="grid size-8 shrink-0 place-items-center rounded-full border border-[var(--line)] bg-[var(--surface-2)] text-[11px] font-semibold text-[var(--ink-soft)]">{initials}</span>

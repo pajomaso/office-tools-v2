@@ -165,12 +165,12 @@ export default function Rooms({ me }: { me: Me }) {
       <PageHeader title="Rooms" subtitle={area.data?.bookingNote ?? "Use it wisely. If you cancel, others can use the room."}
         actions={<>{me.role === "admin" && <Button variant="outline" onClick={() => setAddBlock(true)}>Cleaning / maintenance</Button>}<Button onClick={quick} disabled={!R.length}><Plus className="size-4" />New reservation</Button></>} />
 
-      <div className="flex flex-wrap gap-3">
-        <button type="button" onClick={() => setFilter("all")} className={clsx("w-40 rounded-[var(--r-lg)] border bg-[var(--surface)] px-3 py-3 text-left transition-all cursor-pointer", filter === "all" ? "border-[var(--brand)] ring-2 ring-[var(--brand)]/30" : "border-[var(--line)] hover:border-[var(--line-strong)]")}>
-          <div className="text-sm font-semibold">All rooms</div><div className="mt-0.5 text-xs text-[var(--ink-mute)]">Side by side</div>
+      <div className="grid grid-cols-3 gap-3">
+        <button type="button" onClick={() => setFilter("all")} className={clsx("col-span-3 w-full rounded-[var(--r-lg)] border bg-[var(--surface)] px-3 py-3 text-left transition-all cursor-pointer", filter === "all" ? "border-[var(--brand)] ring-2 ring-[var(--brand)]/30" : "border-[var(--line)] hover:border-[var(--line-strong)]")}>
+          <div className="text-sm font-semibold">All rooms <span className="font-normal text-[var(--ink-mute)]">· side by side</span></div>
         </button>
         {R.map((r) => (
-          <div key={r.id} className={clsx("relative w-40 overflow-hidden rounded-[var(--r-lg)] border bg-[var(--surface)] transition-all", filter === r.id ? "border-[var(--brand)] ring-2 ring-[var(--brand)]/30" : "border-[var(--line)] hover:border-[var(--line-strong)]")}>
+          <div key={r.id} className={clsx("relative min-w-0 overflow-hidden rounded-[var(--r-lg)] border bg-[var(--surface)] transition-all", filter === r.id ? "border-[var(--brand)] ring-2 ring-[var(--brand)]/30" : "border-[var(--line)] hover:border-[var(--line-strong)]")}>
             <button type="button" onClick={() => setFilter(r.id)} className="block w-full text-left cursor-pointer">
               <RoomPhoto room={r} className="aspect-[16/9] w-full" />
               <div className="flex items-center justify-between px-3 py-2"><span className="text-sm font-semibold">{r.name}</span><span className="flex items-center gap-1 text-xs text-[var(--ink-mute)]"><Users className="size-3" />{r.seats}</span></div>

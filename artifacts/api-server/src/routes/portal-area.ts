@@ -1,9 +1,10 @@
 import { Router, type IRouter } from "express";
 import cookieParser from "cookie-parser";
 import { db, portalSettingsTable, portalTagsTable, portalTagChangesTable, portalItemsTable } from "@workspace/db";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { asyncRoute, guard, type Authed } from "./portal";
-import { decryptCode } from "./portal-crypto";
+import { codeFingerprint, decryptCode, encryptCode, isValidCode } from "./portal-crypto";
+import { CODE_TAKEN, isUniqueViolation, log } from "./portal-tags";
 
 const router: IRouter = Router();
 router.use("/portal", cookieParser());
@@ -58,6 +59,25 @@ router.get("/portal/my-tag/code", guard, asyncRoute(async (req, res) => {
   const tag = own ?? waiting?.t;
   res.setHeader("Cache-Control", "no-store");
   res.json({ number: tag?.number ?? null, code: tag?.codeEnc ? decryptCode(tag.codeEnc) : null, active: tag?.status === "active" && !waiting });
+}));
+
+// A tag can exist without a known code (the admins may not know it). Whoever holds the tag can record their own code once;
+// after that only an admin can change it. This only stores it here: it does not change anything at the supplier.
+router.post("/portal/my-tag/code", guard, asyncRoute(async (req, res) => {
+  const me = (req as Authed).client;
+  const code = req.body?.code;
+  if (!isValidCode(code)) { res.status(400).json({ error: "A code is exactly 4 digits." }); return; }
+  const { own, waiting } = await myTag(me.id);
+  const tag = own ?? waiting?.t;
+  if (!tag) { res.status(404).json({ error: "You don't have a tag yet." }); return; }
+  if (tag.codeEnc) { res.status(409).json({ error: "Your code is already set. Ask an admin to change it." }); return; }
+  try {
+    const [row] = await db.update(portalTagsTable).set({ codeEnc: encryptCode(code), codeFp: codeFingerprint(code) })
+      .where(and(eq(portalTagsTable.id, tag.id), isNull(portalTagsTable.codeEnc))).returning({ id: portalTagsTable.id });
+    if (!row) { res.status(409).json({ error: "Your code is already set. Ask an admin to change it." }); return; }
+  } catch (e) { if (isUniqueViolation(e)) { res.status(409).json({ error: CODE_TAKEN }); return; } throw e; }
+  await log(db, { tag, event: "code_set", detail: "code recorded by the person who holds the tag", actor: me.name });
+  res.status(201).json({ ok: true });
 }));
 
 // Asking for a tag, a replacement, or a new code reaches the admins as a private request. They decide, and any change

@@ -13,16 +13,17 @@ A nova versão está pronta e testada localmente (branch `office-tool-v2`, nada 
 
 ## 3. Dados reais
 6. Emails reais dos 3 administradores. O Notion diz `paulo.sousa@subvisual.co`, `catarina@subvisual.co` e `laura@subvisual.co`; o Paulo entra com `paulo@subvisual.co`. Qual é o correto?
-7. Quantos lugares tem a sala Bravo? (O Notion diz "4 ou 2", ficou 4.)
-8. Como passamos as tags e os códigos atuais (base "Access Control" do Notion) para a nova app sem os códigos passarem por chats ou pelo repositório?
+7. ~~Quantos lugares tem a sala Bravo?~~ **Decidido: 4.**
+8. ~~Como passamos as tags e os códigos?~~ **Decidido (Paulo):** o Paulo tem um documento com a base atual. Muitos códigos ele não sabe, por isso ficam **em branco**; quando um código está em branco, **a própria pessoa pode registá-lo** na sua área pessoal (uma vez; depois só um admin muda). *Falta construir:* o script de importação desse documento (com modo de teste, sem escrever nada).
 
 ## 4. Segurança e produção
 9. Quem guarda a chave que cifra os códigos das portas (`PORTAL_CODE_KEY`)? Se se perder, os códigos guardados ficam ilegíveis. Sugestão: cofre de passwords da empresa.
 10. A base de dados nova deve ser uma "managed database" do DigitalOcean com cópias de segurança diárias. Concordas?
 11. Que endereço final queremos (por exemplo office.subvisual.co)?
 
-## 5. Textos que faltam (Paulo/Rui)
-12. Guias (porta, app, registo), WiFi, e a parte do email de boas-vindas sobre café, frigorífico, micro-ondas e como pedir equipamento.
+## 5. Textos
+12. ~~Guias, WiFi e email de boas-vindas.~~ **Decidido (Paulo):** o Paulo escreve os guias e acrescenta vídeos e fotos; o WiFi os admins editam nas Settings depois; o email de boas-vindas tem um texto provisório em inglês e os admins editam nas Settings.
+   *Em aberto:* como se juntam fotos e vídeos aos guias (hoje um guia é só título e texto).
 
 ---
 Detalhes técnicos e o plano de publicação: `SPEC-CHECK.md`.

@@ -278,6 +278,14 @@ def main():
     check("…the number and code are sent only when asked, and only for your own tag", rv["number"] == "T-004" and rv["code"] == "1357" and an.get("/my-tag/code").json["number"] == "T-003")
     nv = login("nova@example.test")
     check("a pending tag request is shown until the supplier confirms it", nv.get("/my-tag").json["pending"]["kind"] == "assign")
+    if os.environ.get("CHECK_DATABASE_URL"):
+        psql = lambda sql: subprocess.run(["psql", os.environ["CHECK_DATABASE_URL"], "-qc", sql], capture_output=True)
+        psql(f"update portal_tags set code_enc=null, code_fp=null where id='{tags['T-004']['id']}'")
+        check("a tag with no code: the holder can record their own 4-digit code once", ca.post("/my-tag/code", {"code": "12"}).status == 400 and ca.post("/my-tag/code", {"code": "2468"}).status == 201 and ca.get("/my-tag/code").json["code"] == "2468")
+        check("…and cannot change it afterwards (an admin can)", ca.post("/my-tag/code", {"code": "9999"}).status == 409)
+        ad.put(f"/admin/tags/{tags['T-004']['id']}/code", {"code": "1357"})
+    else:
+        skip("a tag with no code: the holder can record their own code once", "set CHECK_DATABASE_URL to run this one")
     check("requests from here: a new tag, a lost tag, a new code (they reach the admins)", all(ca.post("/me/request", {"kind": k}).status == 201 for k in ("new", "lost", "code")) and ca.post("/me/request", {"kind": "lost"}).status == 409)
 
     # ─────────────────────────────────────────────────────────────────────

@@ -80,7 +80,7 @@ export default function Settings() {
         <textarea id="st-note" rows={2} maxLength={500} className={clsx(fieldInput, "h-auto py-2")} value={note.value} onChange={(e) => note.set(e.target.value)} />
       </Section>
 
-      <Section title="Guides" hint="Shown in everyone's personal area. Add, reorder or remove them." {...guides} onSave={guides.save}>
+      <Section title="Guides" hint="Shown in everyone's personal area. Add, reorder or remove them. To show a video or a photo, put its link on a line of its own (YouTube, Vimeo, Loom, or an image link)." {...guides} onSave={guides.save}>
         <ul className="flex flex-col gap-3">
           {guides.value.map((g, i) => (
             <li key={g.id + i} className="rounded-[var(--r-md)] border border-[var(--line)] p-3">

@@ -5,6 +5,7 @@ import { Link } from "wouter";
 import { api, type Area, type Me, type MyTag } from "@/lib/api";
 import { Badge, Button, Card, PageHeader, Skeleton } from "@/components/ui";
 import { askConfirm } from "@/components/Confirm";
+import GuideBody from "@/components/GuideBody";
 
 function CopyButton({ value, label }: { value: string; label: string }) {
   const [done, setDone] = useState(false);
@@ -117,7 +118,7 @@ export default function MePage({ me }: { me: Me }) {
           {area.data?.guides.map((g) => (
             <details key={g.id} className="group px-5 py-3">
               <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium">{g.title}<ChevronDown className="size-4 text-[var(--ink-mute)] transition-transform group-open:rotate-180" /></summary>
-              <p className="mt-2 whitespace-pre-line text-sm text-[var(--ink-soft)]">{g.body}</p>
+              <GuideBody text={g.body} title={g.title} />
             </details>
           ))}
         </div>

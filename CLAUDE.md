@@ -10,6 +10,10 @@ Owner is not a developer. Explain things in plain language.
 - Small commits, one feature at a time, with clear messages.
 - After each step, say in plain language what changed and how to see it running.
 
+## Where this lives
+- Home of v2: private repo `pajomaso/office-tools-v2` (git remote `v2`, branch `main` there = local `office-tool-v2`). Push with `git push v2 office-tool-v2:main` only when asked.
+- `origin` is the old `pajomaso/subofficehub`: do not push v2 work there.
+
 ## Spec
 Notion: "Office Tool — Changes for Rui (Oct 2026)" https://app.notion.com/p/3f3caae58631810b90fcf80ac36a3942
 The spec replaces JTBD v6 where they differ. Anything marked `??` in it is unconfirmed.

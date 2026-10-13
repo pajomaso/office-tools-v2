@@ -38,6 +38,25 @@ function BlockDialog({ rooms, onClose }: { rooms: Room[]; onClose: () => void })
   );
 }
 
+// Bookings that overlap in time (different rooms in the "All rooms" view) share the column side by side
+// instead of covering each other: each gets a lane, and every booking in a group of overlaps gets the group's width.
+function lanes<T extends { id: string; startsAt: string; endsAt: string }>(items: T[]) {
+  const sorted = [...items].sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt) || +new Date(b.endsAt) - +new Date(a.endsAt));
+  const out = new Map<string, { lane: number; of: number }>();
+  let group: T[] = [], ends: number[] = [], groupEnd = 0;
+  const close = () => { for (const it of group) out.get(it.id)!.of = ends.length; group = []; ends = []; };
+  for (const it of sorted) {
+    const s = +new Date(it.startsAt), e = +new Date(it.endsAt);
+    if (group.length && s >= groupEnd) close();
+    let lane = ends.findIndex((end) => end <= s);
+    if (lane < 0) { lane = ends.length; ends.push(e); } else ends[lane] = e;
+    out.set(it.id, { lane, of: 0 });
+    group.push(it); groupEnd = Math.max(groupEnd, e);
+  }
+  close();
+  return out;
+}
+
 // ── Calendar ────────────────────────────────────────────────────────────────
 function Calendar({ week, rooms, filter, bookings, blocks, me, onPick, onEdit, onBlock }: {
   week: string; rooms: Room[]; filter: string; bookings: Booking[]; blocks: Block[]; me: Me;
@@ -81,15 +100,15 @@ function Calendar({ week, rooms, filter, bookings, blocks, me, onPick, onEdit, o
                   className="absolute inset-x-0.5 overflow-hidden rounded-md border border-dashed border-[var(--line-strong)] bg-[repeating-linear-gradient(135deg,var(--surface-2),var(--surface-2)_6px,transparent_6px,transparent_12px)] px-1 text-left text-[10px] font-medium text-[var(--ink-soft)] enabled:cursor-pointer"
                   title={`${blockLabel[b.kind]}${b.title ? ` · ${b.title}` : ""}${b.roomId ? ` · ${name(b.roomId)}` : " · all rooms"}`}>{blockLabel[b.kind]}</button>
               ))}
-              {bookings.filter((b) => ymd(b.startsAt) === d && (filter === "all" || b.roomId === filter)).map((b) => (
-                <button key={b.id} type="button" disabled={!b.canEdit} onClick={() => onEdit(b)} style={{ ...place(b.startsAt, b.endsAt), ...(filter === "all" ? { borderLeft: `3px solid ${color(b.roomId)}` } : {}) }}
-                  className={clsx("absolute inset-x-0.5 overflow-hidden rounded-md border px-1 py-0.5 text-left text-[10px] leading-tight enabled:cursor-pointer",
+              {(() => { const day = bookings.filter((b) => ymd(b.startsAt) === d && (filter === "all" || b.roomId === filter)); const lane = lanes(day); return day.map((b) => { const { lane: i, of: n } = lane.get(b.id)!; return (
+                <button key={b.id} type="button" disabled={!b.canEdit} onClick={() => onEdit(b)} style={{ ...place(b.startsAt, b.endsAt), left: `calc(${(i / n) * 100}% + 2px)`, width: `calc(${100 / n}% - 4px)`, ...(filter === "all" ? { borderLeft: `3px solid ${color(b.roomId)}` } : {}) }}
+                  className={clsx("absolute overflow-hidden rounded-md border px-1 py-0.5 text-left text-[10px] leading-tight enabled:cursor-pointer",
                     b.mine ? "border-[color-mix(in_oklch,var(--brand)_50%,transparent)] bg-[color-mix(in_oklch,var(--brand)_14%,var(--surface))] text-[var(--brand-ink)]" : "border-[var(--line-strong)] bg-[var(--surface-2)] text-[var(--ink-mute)]")}
                   title={b.canEdit ? `${b.title} · ${name(b.roomId)}${b.bookedFor ? ` · for ${b.bookedFor}` : ""} · ${b.owner}` : `Reserved by ${b.owner} · ${name(b.roomId)}`}>
                   <div className="truncate font-semibold">{b.canEdit ? b.title : b.owner}</div>
                   <div className="tnum truncate opacity-80">{hm(b.startsAt)}–{hm(b.endsAt)}{filter === "all" ? ` · ${name(b.roomId)}` : ""}</div>
                 </button>
-              ))}
+              ); }); })()}
             </div>
           ))}
         </div>

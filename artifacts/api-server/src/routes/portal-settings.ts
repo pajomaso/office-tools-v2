@@ -1,9 +1,11 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type RequestHandler } from "express";
 import cookieParser from "cookie-parser";
 import { randomUUID } from "node:crypto";
-import { db, portalSettingsTable } from "@workspace/db";
+import multer from "multer";
+import { db, portalGuidePhotosTable, portalSettingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { asyncRoute, managerGuard } from "./portal";
+import { asyncRoute, guard, managerGuard } from "./portal";
+import { imageType } from "./portal-rooms";
 import { DEFAULT_BOOKING_NOTE, DEFAULT_GUIDES } from "./portal-area";
 import { DEFAULT_WELCOME } from "./portal-mail";
 import { occupancyWindow } from "./portal-metrics";
@@ -54,6 +56,34 @@ router.put("/portal/admin/settings/guides", managerGuard, asyncRoute(async (req,
   }
   await put("guides", guides);
   res.json({ guides });
+}));
+
+// Guide photos: an admin uploads one and gets back its link, which the Settings page adds to the guide's text.
+// Photos are never deleted automatically (removing the line just hides it), so nothing is lost by mistake.
+const GUIDE_PHOTO_MAX = 5 * 1024 * 1024;
+const guideUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: GUIDE_PHOTO_MAX, files: 1 } });
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const uploadGuidePhoto: RequestHandler = (req, res, next) =>
+  guideUpload.single("file")(req, res, (err?: unknown) => (err ? bad(res, 400, (err as { code?: string }).code === "LIMIT_FILE_SIZE" ? "The photo is over 5 MB." : "Upload failed.") : next()));
+
+router.post("/portal/admin/guide-photos", managerGuard, uploadGuidePhoto,
+  asyncRoute(async (req, res) => {
+    const type = req.file ? imageType(req.file.buffer) : null;
+    if (!req.file || !type) { bad(res, 400, "Upload a JPEG, PNG or WebP photo (up to 5 MB)."); return; }
+    const [row] = await db.insert(portalGuidePhotosTable).values({ contentType: type, data: req.file.buffer }).returning({ id: portalGuidePhotosTable.id });
+    res.status(201).json({ url: `/api/portal/guide-photos/${row!.id}` });
+  }));
+
+// Anyone signed in can see them (guides are for everyone in the office).
+router.get("/portal/guide-photos/:id", guard, asyncRoute(async (req, res) => {
+  const id = String(req.params.id);
+  const [p] = UUID.test(id) ? await db.select().from(portalGuidePhotosTable).where(eq(portalGuidePhotosTable.id, id)) : [];
+  if (!p) { bad(res, 404, "No photo."); return; }
+  res.setHeader("Content-Type", p.contentType);
+  res.setHeader("Cache-Control", "private, max-age=604800, immutable"); // a photo never changes: a new upload gets a new link
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.send(p.data);
 }));
 
 router.put("/portal/admin/settings/wifi", managerGuard, asyncRoute(async (req, res) => {

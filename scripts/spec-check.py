@@ -241,6 +241,10 @@ def main():
     up = ad.call("PUT", f"/admin/rooms/{room['Alfa']}/photo", raw=multipart({}, "file", "a.png", png, "image/png"))
     check("admins set room names and photos; everyone sees both", ad.patch(f"/admin/rooms/{room['Bravo']}", {"name": "Bravo", "seats": 4}).status == 200 and up.status == 200 and ca.get(f"/rooms/{room['Alfa']}/photo").status == 200)
     check("a user can't change rooms; a fake image is refused", an.patch(f"/admin/rooms/{room['Bravo']}", {"name": "x", "seats": 1}).status == 403 and ad.call("PUT", f"/admin/rooms/{room['Alfa']}/photo", raw=multipart({}, "file", "a.png", b"not an image", "image/png")).status == 400)
+    gp = ad.call("POST", "/admin/guide-photos", raw=multipart({}, "file", "g.png", png, "image/png"))
+    gurl = (gp.json or {}).get("url", "")
+    check("admins upload photos for the guides; everyone signed in sees them, nobody else", gp.status == 201 and gurl.startswith("/api/portal/guide-photos/") and an.get(gurl[len("/api/portal"):]).status == 200 and Client().get(gurl[len("/api/portal"):]).status == 401)
+    check("…a user can't upload guide photos, and a fake image is refused", an.call("POST", "/admin/guide-photos", raw=multipart({}, "file", "g.png", png, "image/png")).status == 403 and ad.call("POST", "/admin/guide-photos", raw=multipart({}, "file", "g.png", b"nope", "image/png")).status == 400)
     d1 = day(FAR)
     b1 = an.post("/bookings", {"roomId": room["Alfa"], "title": "Interview", "bookedFor": "Dr. Silva (candidate)", "date": d1, "start": "10:00", "end": "11:00"})
     ours = {b["title"]: b for b in an.get("/my-bookings").json["upcoming"]}["Interview"]

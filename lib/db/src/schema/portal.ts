@@ -53,6 +53,14 @@ export const portalRoomPhotosTable = pgTable("portal_room_photos", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Photos admins upload for the guides in the personal area. A guide shows one by having its link on a line of its own.
+export const portalGuidePhotosTable = pgTable("portal_guide_photos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  contentType: text("content_type").notNull(),
+  data: bytea("data").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Cleaning and maintenance slots. roomId null = every room. Bookings can't overlap them.
 export const portalBlocksTable = pgTable("portal_blocks", {
   id: uuid("id").primaryKey().defaultRandom(),

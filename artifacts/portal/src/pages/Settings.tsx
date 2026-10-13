@@ -1,12 +1,27 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ImagePlus, Pencil, Plus, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import { api, type AdminSettings, type Guide, type Room, type WifiNetwork, type Window } from "@/lib/api";
 import { Button, Card, PageHeader, Skeleton, fieldInput, fieldLabel } from "@/components/ui";
 import EditRoomDialog from "@/components/EditRoomDialog";
 import RoomPhoto from "@/components/RoomPhoto";
 import WelcomeCopyCard from "@/components/WelcomeCopyCard";
+
+// Uploads a photo and adds its link as a new line at the end of the guide's text (move the line to place the photo).
+function GuidePhotoButton({ onAdded }: { onAdded: (url: string) => void }) {
+  const up = useMutation({ mutationFn: (f: File) => { const b = new FormData(); b.set("file", f); return api<{ url: string }>("/admin/guide-photos", { method: "POST", body: b }); }, onSuccess: (r) => onAdded(r.url) });
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-[var(--line-strong)] px-3 text-sm font-medium hover:bg-[var(--surface-2)]">
+        <ImagePlus className="size-3.5" />{up.isPending ? "Uploading…" : "Add photo"}
+        <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={up.isPending} onChange={(e) => { const f = e.target.files?.[0]; if (f) up.mutate(f); e.target.value = ""; }} />
+      </label>
+      <span className="text-xs text-[var(--ink-mute)]">JPEG, PNG or WebP, up to 5 MB. Then press Save.</span>
+      {up.isError && <p role="alert" className="w-full text-sm text-[var(--danger)]">{up.error.message}</p>}
+    </div>
+  );
+}
 
 const DAYS = [[1, "Mon"], [2, "Tue"], [3, "Wed"], [4, "Thu"], [5, "Fri"], [6, "Sat"], [0, "Sun"]] as const;
 
@@ -92,6 +107,7 @@ export default function Settings() {
               </div>
               <label className="sr-only" htmlFor={`g-b-${i}`}>Guide text</label>
               <textarea id={`g-b-${i}`} rows={3} maxLength={4000} className={clsx(fieldInput, "mt-2 h-auto py-2")} value={g.body} onChange={(e) => guides.set(guides.value.map((x, k) => (k === i ? { ...x, body: e.target.value } : x)))} />
+              <GuidePhotoButton onAdded={(url) => guides.set(guides.value.map((x, k) => (k === i ? { ...x, body: `${x.body.replace(/\s+$/, "")}\n${url}\n` } : x)))} />
             </li>
           ))}
         </ul>

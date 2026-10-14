@@ -108,12 +108,12 @@ Re-run it any time: start the API and run `python3 scripts/spec-check.py` (see C
 
 **B. Before the first deploy (work on the branch)**
 4. Put the code on a dedicated release branch, not `master`; decide whether to drop the old apps from it.
-5. Add the DigitalOcean app definition: one service running `node artifacts/api-server/dist/index.cjs` (build: `pnpm --filter @workspace/api-server run build`), one static site for `artifacts/portal/dist/public` (build: `pnpm --filter @workspace/portal run build`), `/api` routed to the service and everything else to `index.html`. Same address for both, so cookies stay first-party.
-6. Set up **real database migrations** (generate and commit them) instead of the development "push". The schema file alone was verified to build a correct empty database; later changes need migrations.
-7. Connect the email service in `portal-mail.ts`, and add a rate limit on "email me a link" (per address and per IP) **before** it is switched on, to prevent email bombing.
-8. Security headers (a content-security-policy and the usual ones) and a restricted CORS list.
-9. Check the database connection uses TLS with DigitalOcean's managed database.
-10. Write a one-off script that creates the three real admins and the companies, **without** any fake data. (`seed:v2` refuses to run outside localhost, on purpose.)
+5. ✅ **Done (14 Oct):** `.do/app.yaml`. One service serves both the web app and the API (same address, cookies stay first-party), a pre-deploy job runs the migrations, managed database with backups, manual deploys. Checked with a clean build from a fresh copy of the repository; not validated by DigitalOcean itself (needs `doctl`).
+6. ✅ **Done:** `lib/db/migrations` (baseline of the `portal_*` tables) and `pnpm --filter @workspace/db run migrate`. On a new database it builds exactly the same tables, indexes and constraints as the development one; running it twice is harmless.
+7. Connect the email service in `portal-mail.ts`. (The rate limit on "email me a link" is ✅ done: 5 per address per 15 min, 30 per IP per hour; password form 30 per IP per 15 min. On in production.)
+8. ✅ **Done:** security headers and a content-security-policy (checked: no page breaks), CORS off in production. Also found and fixed: the old Office Engine routes (no sign-in at all) are no longer served in production.
+9. ✅ **Done in code:** with `DATABASE_CA_CERT` set (the app definition does it) the connection is encrypted and the certificate verified. To be confirmed on the real database.
+10. ✅ **Done:** `pnpm --filter @workspace/scripts run setup:real -- setup.json [--apply]` (example: `scripts/setup.example.json`). Dry run by default; refuses a database that has fake users; safe to run twice.
 11. Write the Notion import (tags, users) with a dry-run mode; handle the real codes outside the repository and let the importer encrypt them.
 
 **C. Settings in DigitalOcean (encrypted environment variables)**

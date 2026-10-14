@@ -27,9 +27,10 @@ Entrar com `admin1@example.test` (o link de entrada aparece no ecrã fora de pro
 ## O que falta antes de ir para produção
 Ver **SPEC-CHECK.md** (secção "What deploying safely would need"). O essencial:
 - **Envio de emails** (não há serviço ligado; links de entrada e email de boas-vindas só aparecem no ecrã).
-- **Migrações** de base de dados a sério (hoje usa `drizzle-kit push`, só para desenvolvimento).
 - **Importação** das tags e dos códigos reais do Notion ("Access Control"), com os códigos fora do repositório.
-- Cabeçalhos de segurança, script para criar os admins reais, textos em falta (`[add …]`).
+- Textos em falta (`[add …]`), as respostas em QUESTIONS-FOR-DAVIDE.md.
+
+Já preparado (não publicado): definição da app no DigitalOcean (`.do/app.yaml`), migrações (`lib/db/migrations`), script para criar os admins reais (`setup:real`), cabeçalhos de segurança e limites ao pedido de links de entrada.
 - Nunca usar a chave local de cifra dos códigos: em produção é obrigatório definir `PORTAL_CODE_KEY`, `PORTAL_URL` e `DATABASE_URL`.
 
 ## Limites conhecidos

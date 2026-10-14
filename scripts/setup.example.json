@@ -1,0 +1,13 @@
+{
+  "companies": ["Subvisual"],
+  "admins": [
+    { "name": "Paulo Sousa", "email": "paulo.sousa@subvisual.co", "company": "Subvisual" },
+    { "name": "Catarina", "email": "catarina@subvisual.co", "company": "Subvisual" },
+    { "name": "Laura", "email": "laura@subvisual.co", "company": "Subvisual" }
+  ],
+  "rooms": [
+    { "name": "Alfa", "seats": 4 },
+    { "name": "Bravo", "seats": 4 },
+    { "name": "Charlie", "seats": 6 }
+  ]
+}

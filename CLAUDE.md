@@ -23,7 +23,7 @@ The spec replaces JTBD v6 where they differ. Anything marked `??` in it is uncon
 - Node 24 (`/usr/local/bin`), pnpm. Apps: API `:8080` (`artifacts/api-server`), UI `:5174` (`artifacts/portal`, proxies `/api`).
 - Dev servers are defined in `.claude/launch.json` (`api-server`, `portal`).
 - Seed fake data: `pnpm --filter @workspace/scripts run seed:v2` (refuses to run unless the database is on localhost).
-- Schema: `pnpm --filter @workspace/db run push` (local only). If `drizzle-kit` asks about renames it hangs without a terminal; drop/rename columns by SQL first.
+- Schema: `pnpm --filter @workspace/db run push` (local only). **Every schema change also needs a migration**: `pnpm --filter @workspace/db run generate -- --name <what>` and commit `lib/db/migrations`. New databases (staging, production) are set up only with `pnpm --filter @workspace/db run migrate` (v2 tables only, tracked in `__portal_migrations`). If `drizzle-kit` asks about renames it hangs without a terminal; drop/rename columns by SQL first.
 - All tests: `pnpm run test` (timezone and metrics tests under 3 machine timezones + password/door-code tests). Timezone only: `pnpm run test:time` runs the booking-time tests with the machine set to 3 different timezones (must all pass).
 - Spec check: with the API running, `python3 scripts/spec-check.py` resets the fake data and checks the whole spec item by item (localhost only). See SPEC-CHECK.md for the results and the deploy plan.
 - Check: `npx tsc -p artifacts/portal/tsconfig.json --noEmit` and the same in `artifacts/api-server` (filter for `portal`; `api-zod` errors predate this work).

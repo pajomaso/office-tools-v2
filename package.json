@@ -10,7 +10,7 @@
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
     "test:time": "for tz in UTC America/New_York Asia/Tokyo; do echo \"== machine timezone: $tz\"; TZ=$tz pnpm --filter @workspace/scripts exec tsx --test ../artifacts/api-server/src/routes/portal-time.test.ts ../artifacts/portal/src/lib/time.test.ts ../artifacts/api-server/src/routes/portal-metrics-calc.test.ts || exit 1; done",
-    "test": "pnpm run test:time && pnpm --filter @workspace/scripts exec tsx --test ../artifacts/api-server/src/routes/portal-crypto.test.ts ../artifacts/api-server/src/routes/portal-config.test.ts"
+    "test": "pnpm run test:time && pnpm --filter @workspace/scripts exec tsx --test ../artifacts/api-server/src/routes/portal-crypto.test.ts ../artifacts/api-server/src/routes/portal-config.test.ts ../artifacts/api-server/src/routes/portal-rate-limit.test.ts"
   },
   "private": true,
   "devDependencies": {

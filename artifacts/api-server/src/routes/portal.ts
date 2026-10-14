@@ -12,6 +12,7 @@ import {
   portalCompaniesTable,
 } from "@workspace/db";
 import { and, eq, gt, sql } from "drizzle-orm";
+import { limiter } from "./portal-rate-limit";
 
 const router: IRouter = Router();
 router.use("/portal", cookieParser());
@@ -56,9 +57,17 @@ export const guard: RequestHandler[] = [requireClient];
 export const managerGuard: RequestHandler[] = [requireClient, requireManager];
 
 // ── Auth (magic link) ───────────────────────────────────────────────────────
+// Limits so nobody can flood someone's inbox with sign-in emails or hammer the password form.
+// On in production; locally only with PORTAL_LOGIN_LIMITS=1 (the spec check signs in many times).
+const limitsOn = isProd || process.env.PORTAL_LOGIN_LIMITS === "1";
+const off = { hit: () => false };
+const linkPerEmail = limitsOn ? limiter(5, 15 * 60_000) : off, linkPerIp = limitsOn ? limiter(30, 60 * 60_000) : off, passwordPerIp = limitsOn ? limiter(30, 15 * 60_000) : off;
+const SLOW_DOWN = "Too many attempts. Please wait a few minutes and try again.";
+
 router.post("/portal/auth/request", asyncRoute(async (req, res) => {
-  const email = String(req.body?.email ?? "").trim().toLowerCase();
+  const email = String(req.body?.email ?? "").trim().toLowerCase().slice(0, 254);
   if (!email) { res.status(400).json({ error: "Email required" }); return; }
+  if (linkPerIp.hit(req.ip ?? "unknown") || linkPerEmail.hit(email)) { res.status(429).json({ error: SLOW_DOWN }); return; }
   const [client] = await db.select().from(portalClientsTable).where(eq(portalClientsTable.email, email));
   // Same response for known and unknown emails, so addresses can't be enumerated.
   if (!client) { res.json({ ok: true }); return; }
@@ -92,6 +101,7 @@ router.get("/portal/auth/verify", asyncRoute(async (req, res) => {
 // (the emailed sign-in link still works, so a lockout can't shut anyone out of the office tool).
 const MAX_FAILS = 5;
 router.post("/portal/auth/password", asyncRoute(async (req, res) => {
+  if (passwordPerIp.hit(req.ip ?? "unknown")) { res.status(429).json({ error: SLOW_DOWN }); return; }
   const email = String(req.body?.email ?? "").trim().toLowerCase();
   const password = String(req.body?.password ?? "").slice(0, PASSWORD_MAX);
   const [c] = email ? await db.select().from(portalClientsTable).where(eq(portalClientsTable.email, email)) : [];

@@ -199,7 +199,7 @@ def main():
     check("login/account forms carry the hints password managers (Bitwarden, browser) look for", all(t in page for t in ('autoComplete="username"', 'autoComplete="current-password"', 'autoComplete="new-password"')))
 
     sec("Onboarding a new user")
-    uid = ad.post("/admin/users", {"name": "Nova Pessoa", "email": "nova@example.test", "kind": "company", "companyId": next(c["id"] for c in ad.get("/admin/companies").json if c["name"] == "Studio Norte")}).json["id"]
+    uid = ad.post("/admin/users", {"name": "Nova Pessoa", "email": "nova@example.test", "kind": "company", "companyId": next(c["id"] for c in ad.get("/admin/companies").json if c["name"] == "Onda")}).json["id"]
     check("1. create the user (name + email) and get an ID", bool(uid))
     tags = {t["number"]: t for t in ad.get("/admin/tags").json["tags"]}
     check("4-digit code: anything else is refused", ad.post(f"/admin/users/{uid}/onboard", {"tagNumber": "T-007", "code": "12a4"}).status == 400)

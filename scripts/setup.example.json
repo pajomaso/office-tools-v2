@@ -1,5 +1,5 @@
 {
-  "companies": ["Subvisual"],
+  "companies": ["Subvisual", "Onda", "Xmoney"],
   "admins": [
     { "name": "Paulo Sousa", "email": "paulo.sousa@subvisual.co", "company": "Subvisual" },
     { "name": "Catarina", "email": "catarina@subvisual.co", "company": "Subvisual" },

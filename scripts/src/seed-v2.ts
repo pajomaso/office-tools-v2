@@ -24,28 +24,28 @@ async function main() {
     { name: "Charlie", seats: 6, color: "#D97706", sortOrder: 2 },
   ]).returning();
 
-  const [subvisual, norte] = await db.insert(portalCompaniesTable).values([{ name: "Subvisual" }, { name: "Studio Norte" }]).returning();
+  const [subvisual, onda, xmoney] = await db.insert(portalCompaniesTable).values([{ name: "Subvisual" }, { name: "Onda" }, { name: "Xmoney" }]).returning();
   const people = [
     { email: "admin1@example.test", name: "Admin One", companyId: subvisual!.id, role: "admin" },
     { email: "admin2@example.test", name: "Admin Two", companyId: subvisual!.id, role: "admin" },
     { email: "admin3@example.test", name: "Admin Three", companyId: subvisual!.id, role: "admin" },
     { email: "ana@example.test", name: "Ana Costa", companyId: subvisual!.id, role: "user" },
     { email: "bruno@example.test", name: "Bruno Lima", companyId: subvisual!.id, role: "user" },
-    { email: "carla@example.test", name: "Carla Dias", companyId: norte!.id, role: "user" },
-    { email: "diogo@example.test", name: "Diogo Reis", companyId: norte!.id, role: "user" },
+    { email: "carla@example.test", name: "Carla Dias", companyId: onda!.id, role: "user" },
+    { email: "diogo@example.test", name: "Diogo Reis", companyId: xmoney!.id, role: "user" },
     { email: "guest@example.test", name: "Event Guest", companyId: null, role: "user", kind: "event" },
   ];
   const clients = await db.insert(portalClientsTable).values(people).returning();
   const by = (email: string) => clients.find((c) => c.email === email)!.id;
 
   // Fake tag numbers only. No access codes anywhere. holderName is the name registered at the supplier.
-  const co = (n: string) => (n === "norte" ? norte!.id : subvisual!.id);
+  const co = (n: string) => (n === "onda" ? onda!.id : n === "xmoney" ? xmoney!.id : subvisual!.id);
   const tagRows = await db.insert(portalTagsTable).values([
     { number: "T-001", clientId: by("admin1@example.test"), holderName: "Admin One", status: "active", accessLevel: "administrator", companyId: co("sv") },
     { number: "T-002", clientId: by("admin2@example.test"), holderName: "Admin Two", status: "active", accessLevel: "administrator", companyId: co("sv") },
     { number: "T-003", clientId: by("ana@example.test"), holderName: "Ana Costa", status: "active", companyId: co("sv") },
-    { number: "T-004", clientId: by("carla@example.test"), holderName: "Carla Dias", status: "active", companyId: co("norte") },
-    { number: "T-005", clientId: by("diogo@example.test"), holderName: "Diogo Reis", status: "active", companyId: co("norte") },
+    { number: "T-004", clientId: by("carla@example.test"), holderName: "Carla Dias", status: "active", companyId: co("onda") },
+    { number: "T-005", clientId: by("diogo@example.test"), holderName: "Diogo Reis", status: "active", companyId: co("xmoney") },
     { number: "T-006", status: "spare" },
     { number: "T-007", status: "spare" },
     { number: "T-008", status: "lost", note: "Lost in September" },
@@ -109,7 +109,7 @@ async function main() {
   await db.insert(portalBookingsTable).values({ roomId: rooms[0]!.id, clientId: by("ana@example.test"), title: "Client call", bookedFor: "Rui (client)", startsAt: at(24), endsAt: at(25) });
   await db.insert(portalBlocksTable).values({ roomId: null, kind: "cleaning", title: "Weekly cleaning", startsAt: at(48), endsAt: at(49), createdBy: by("admin1@example.test") });
   console.log(`  ${hist.length} fake bookings over a year.`);
-  console.log("  3 rooms, 8 users (3 admins, 2 companies, 1 event guest), 10 tags. Sign in as admin1@example.test (link is shown on screen locally).");
+  console.log("  3 rooms, 8 users (3 admins, 3 companies, 1 event guest), 10 tags. Sign in as admin1@example.test (link is shown on screen locally).");
   process.exit(0);
 }
 main();

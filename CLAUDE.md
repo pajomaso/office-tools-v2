@@ -26,13 +26,13 @@ The spec replaces JTBD v6 where they differ. Anything marked `??` in it is uncon
 - Schema: `pnpm --filter @workspace/db run push` (local only). **Every schema change also needs a migration**: `pnpm --filter @workspace/db run generate -- --name <what>` and commit `lib/db/migrations`. New databases (staging, production) are set up only with `pnpm --filter @workspace/db run migrate` (v2 tables only, tracked in `__portal_migrations`). If `drizzle-kit` asks about renames it hangs without a terminal; drop/rename columns by SQL first.
 - All tests: `pnpm run test` (timezone and metrics tests under 3 machine timezones + password/door-code tests). Timezone only: `pnpm run test:time` runs the booking-time tests with the machine set to 3 different timezones (must all pass).
 - Spec check: with the API running, `python3 scripts/spec-check.py` resets the fake data and checks the whole spec item by item (localhost only). See SPEC-CHECK.md for the results and the deploy plan.
-- Check: `npx tsc -p artifacts/portal/tsconfig.json --noEmit` and the same in `artifacts/api-server` (filter for `portal`; `api-zod` errors predate this work).
+- Check: `npx tsc -p artifacts/portal/tsconfig.json --noEmit` and the same in `artifacts/api-server` (both should be clean).
 
 ## Notes
 - Door codes are stored encrypted. Locally a fixed fake key is used; production MUST set `PORTAL_CODE_KEY` (32 random bytes, base64) and the app refuses to start the feature without it. Never reuse the local key for real codes.
 - Tags: changes go into one open batch; sending it makes a secret link for the supplier (`/access/<token>`, no account). Only a SHA-256 hash of the link is stored, so a link is shown once and can be regenerated or revoked. A tag only changes when its line is marked done. Set `PORTAL_URL` in production so links point at the real site.
 - Production needs `PORTAL_URL` (https), `PORTAL_CODE_KEY` and `DATABASE_URL`; the server refuses to start without them. Sign-in links, sessions and the supplier link are stored hashed.
 - No email service is connected: the welcome email is shown as a preview, and sign-in links are shown on screen outside production.
-- The live app (office-8mijw.ondigitalocean.app) is NOT built from this repo. This repo's deploy config is Replit's. Confirm with Davide which repo/branch DigitalOcean deploys before any merge.
+- The live app (office-8mijw.ondigitalocean.app) is NOT built from this repo. This repo only contains v2 (the old Office Engine apps were removed on 19 Oct). Confirm with Davide which repo/branch DigitalOcean deploys before any merge.
 - The office is in Braga: all booking rules and display use Europe/Lisbon time (`artifacts/api-server/src/routes/portal-time.ts`, `artifacts/portal/src/lib/time.ts`).
 - Magic-link emails are not sent yet; outside production the link is logged and shown on screen.

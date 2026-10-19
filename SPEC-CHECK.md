@@ -13,7 +13,7 @@ Nothing here has been deployed. Everything below ran on a local computer with fa
 | Production build (`api-server` bundle) started with production settings | Starts; refuses to start with missing or unsafe settings; cookie is `HttpOnly; Secure; SameSite=Lax`; sign-in link never in the response or the logs |
 | Automated accessibility audit (axe) on every page | 0 violations after the fixes below |
 | Occupancy numbers | Matched an independent SQL query |
-| Dependency audit | 15 known vulnerabilities → 2 (both in the old check-in app, not part of this) |
+| Dependency audit | 15 known vulnerabilities → 0 (the last 2 left with the old apps, removed on 19 Oct) |
 
 Re-run it any time: start the API and run `python3 scripts/spec-check.py` (see CLAUDE.md). It only runs against `localhost`, because it resets and creates fake data.
 
@@ -84,7 +84,7 @@ Re-run it any time: start the API and run `python3 scripts/spec-check.py` (see C
 | Sessions, sign-in links and invite links were stored **readable** in the database | A database copy (backup) could be used to sign in. Now only a hash is stored (like the supplier link already was). |
 | In production, the address in sign-in/supplier links came from the **request** | Someone could request a link for another person with a look-alike address and catch the secret. Now only `PORTAL_URL` is used. |
 | Missing production settings failed halfway through a request (HTTP 500) | The server now refuses to start without `PORTAL_URL` (https), `PORTAL_CODE_KEY` (32 bytes) and `DATABASE_URL`. |
-| 15 vulnerable dependencies (1 critical in Express' IP handling, which the rate limits rely on; Multer; Drizzle) | Updated within the allowed version ranges; 2 left, in the old check-in app. |
+| 15 vulnerable dependencies (1 critical in Express' IP handling, which the rate limits rely on; Multer; Drizzle) | Updated within the allowed version ranges; the last 2 went with the old apps. |
 | Secondary text colour, green, amber and red were below the WCAG AA contrast | Darkened slightly (deviates a little from the original palette). |
 | Supplier page had no `main`/heading; empty table headers; the hidden email field for password managers used `display: none` | Fixed. |
 | "Book a room" as the headline action of Home | Removed, per the spec. |
@@ -97,7 +97,7 @@ Re-run it any time: start the API and run `python3 scripts/spec-check.py` (see C
 - The account lock (5 wrong passwords) can be triggered by someone else on purpose; the emailed link still works.
 - One tag per person.
 - No browser-based automated UI tests: the spec check exercises the API; the screens were checked by hand and with axe.
-- The repository still contains the **old Office Engine** (`office-engine`, `check-in`, `mockup-sandbox`, old API routes). They are not part of v2 and one of them carries the 2 remaining audit findings. The type-check of `lib/api-zod` also fails (it did before this work).
+- The old Office Engine apps (`office-engine`, `check-in`, `mockup-sandbox`, old API routes, `lib/api-*`) were **removed** on 19 Oct; the repository now only holds v2.
 - The live app (`office-8mijw.ondigitalocean.app`) is **not built from this repository** and its data model is unknown. v2 cannot be placed on top of it.
 
 ## What deploying safely would need (not done)

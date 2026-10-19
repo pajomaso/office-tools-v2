@@ -10,7 +10,8 @@ if (!process.env.DATABASE_URL) {
 }
 
 export default defineConfig({
-  schema: path.join(__dirname, "./src/schema/index.ts"),
+  schema: path.join(__dirname, "./src/schema/portal.ts"),
+  tablesFilter: ["portal_*"], // only v2 tables; anything else in a local database is left alone
   dialect: "postgresql",
   dbCredentials: {
     url: process.env.DATABASE_URL,

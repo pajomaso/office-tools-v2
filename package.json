@@ -4,8 +4,8 @@
   "license": "MIT",
   "scripts": {
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
-    "dev": "concurrently -n \"API,UI\" -c \"blue,green\" \"pnpm --filter @workspace/api-server run dev\" \"pnpm --filter @workspace/office-engine run dev\"",
-    "setup": "docker compose up -d postgres && sleep 2 && pnpm --filter @workspace/db run push && pnpm --filter @workspace/scripts run seed",
+    "dev": "concurrently -n \"API,UI\" -c \"blue,green\" \"pnpm --filter @workspace/api-server run dev\" \"pnpm --filter @workspace/portal run dev\"",
+    "setup": "docker compose up -d postgres && sleep 2 && pnpm --filter @workspace/db run push && pnpm --filter @workspace/scripts run seed:v2",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",

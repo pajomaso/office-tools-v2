@@ -57,7 +57,7 @@ export type MyTag = { tag: { status: string; level: string; hasCode: boolean } |
 export type SupplierLine = { id: string; tagNumber: string; kind: ChangeKind; fromName: string; toName: string; level: TagLevel; status: TagLine["status"]; doneAt: string | null };
 export type AdminUser = {
   id: string; email: string; name: string; role: "user" | "admin"; kind: "company" | "event"; companyId: string | null; company: string | null;
-  hasPassword: boolean; tag: string | null; pendingTag: string | null; hasOpenRequest: boolean;
+  hasPassword: boolean; tag: string | null; pendingTag: string | null; hasOpenRequest: boolean; deactivatedAt: string | null;
 };
 export type Company = { id: string; name: string };
 export type MailPreview = { sent: boolean; preview: { to: string; subject: string; body: string }; devLink?: string };

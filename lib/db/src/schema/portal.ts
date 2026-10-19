@@ -21,6 +21,7 @@ export const portalClientsTable = pgTable("portal_clients", {
   passwordHash: text("password_hash"), // scrypt hash; null = magic link only
   failedLogins: integer("failed_logins").notNull().default(0),
   lockedUntil: timestamp("locked_until"),
+  deactivatedAt: timestamp("deactivated_at"), // set when someone leaves: they can no longer sign in; their history stays
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

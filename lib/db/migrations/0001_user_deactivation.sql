@@ -1,0 +1,1 @@
+ALTER TABLE "portal_clients" ADD COLUMN "deactivated_at" timestamp;

@@ -9,6 +9,7 @@ import {
   portalSettingsTable,
   portalCompaniesTable,
   portalLoginTokensTable,
+  portalSessionsTable,
 } from "@workspace/db";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { asyncRoute, guard, managerGuard, type Authed } from "./portal";
@@ -51,6 +52,7 @@ router.get("/portal/admin/users", managerGuard, asyncRoute(async (_req, res) => 
     .where(and(eq(portalTagChangesTable.status, "pending"), inArray(portalTagChangesTable.kind, ["assign", "reassign"])));
   res.json(users.map(({ u, company }) => ({
     id: u.id, email: u.email, name: u.name, role: u.role, kind: u.kind, companyId: u.companyId, company, hasPassword: !!u.passwordHash,
+    deactivatedAt: u.deactivatedAt?.toISOString() ?? null,
     tag: tags.find((t) => t.clientId === u.id)?.number ?? null,
     pendingTag: waiting.find((w) => w.toUserId === u.id)?.number ?? null,
     hasOpenRequest: waiting.some((w) => w.toUserId === u.id),
@@ -89,6 +91,30 @@ router.patch("/portal/admin/users/:id", managerGuard, asyncRoute(async (req, res
   res.json({ ok: true });
 }));
 
+// ── Deactivate / reactivate ─────────────────────────────────────────────────
+// Someone who leaves can no longer sign in: every session and unused sign-in link is removed at once.
+// Their name stays on past bookings, messages and logs. Their tag is NOT changed here: the admin handles it on the Tags page
+// (lost or returned), because that goes through Ricardo.
+router.post("/portal/admin/users/:id/deactivate", managerGuard, asyncRoute(async (req, res) => {
+  const me = (req as Authed).client;
+  const id = String(req.params.id);
+  if (!UUID.test(id)) { bad(res, 404, "User not found."); return; }
+  if (id === me.id) { bad(res, 400, "You can't deactivate yourself. Ask another admin."); return; }
+  const [u] = await db.update(portalClientsTable).set({ deactivatedAt: new Date() }).where(eq(portalClientsTable.id, id)).returning();
+  if (!u) { bad(res, 404, "User not found."); return; }
+  await db.delete(portalSessionsTable).where(eq(portalSessionsTable.clientId, id));
+  await db.delete(portalLoginTokensTable).where(eq(portalLoginTokensTable.clientId, id));
+  const [tag] = await db.select({ number: portalTagsTable.number }).from(portalTagsTable).where(and(eq(portalTagsTable.clientId, id), inArray(portalTagsTable.status, ["active", "blocked"]))).limit(1);
+  res.json({ ok: true, tag: tag?.number ?? null });
+}));
+
+router.post("/portal/admin/users/:id/reactivate", managerGuard, asyncRoute(async (req, res) => {
+  const id = String(req.params.id);
+  const [u] = UUID.test(id) ? await db.update(portalClientsTable).set({ deactivatedAt: null, failedLogins: 0, lockedUntil: null }).where(eq(portalClientsTable.id, id)).returning({ id: portalClientsTable.id }) : [];
+  if (!u) { bad(res, 404, "User not found."); return; }
+  res.json({ ok: true });
+}));
+
 // ── Welcome email (copy editable by admins) ─────────────────────────────────
 async function welcomeCopy(): Promise<WelcomeCopy> {
   const [row] = await db.select().from(portalSettingsTable).where(eq(portalSettingsTable.key, "welcome_email"));
@@ -123,6 +149,7 @@ async function inviteAndWelcome(user: typeof portalClientsTable.$inferSelect, or
 router.post("/portal/admin/users/:id/invite", managerGuard, asyncRoute(async (req, res) => {
   const [user] = await db.select().from(portalClientsTable).where(eq(portalClientsTable.id, String(req.params.id)));
   if (!user) { bad(res, 404, "User not found."); return; }
+  if (user.deactivatedAt) { bad(res, 409, `${user.name} is deactivated. Reactivate them first.`); return; }
   res.json(await inviteAndWelcome(user, String(req.body?.origin || "http://localhost:5174")));
 }));
 
@@ -136,6 +163,7 @@ router.post("/portal/admin/users/:id/onboard", managerGuard, asyncRoute(async (r
   if (!isValidCode(code)) { bad(res, 400, "A code is exactly 4 digits."); return; }
   const [user] = await db.select().from(portalClientsTable).where(eq(portalClientsTable.id, String(req.params.id)));
   if (!user) { bad(res, 404, "User not found."); return; }
+  if (user.deactivatedAt) { bad(res, 409, `${user.name} is deactivated. Reactivate them first.`); return; }
 
   let out: { error: string; status: number } | { ok: true };
   try {

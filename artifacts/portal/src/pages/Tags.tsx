@@ -115,7 +115,7 @@ function SentBatch({ b, supplierEmail }: { b: TagBatch; supplierEmail?: string }
 // ── One tag: make a change (goes to the batch) or edit details (direct) ─────
 function TagDialog({ tag, users, companies, onClose }: { tag: TagRow; users: AdminUser[]; companies: Company[]; onClose: () => void }) {
   const qc = useQueryClient();
-  const free = users.filter((u) => !u.tag && !u.hasOpenRequest);
+  const free = users.filter((u) => !u.tag && !u.hasOpenRequest && !u.deactivatedAt);
   const [kind, setKind] = useState(tag.baseStatus === "spare" ? "assign" : tag.baseStatus === "active" ? "reassign" : "lost");
   const [userId, setUserId] = useState(""), [name, setName] = useState(tag.user ?? tag.holderName), [note, setNote] = useState("");
   const [level, setLevel] = useState(tag.level), [tnote, setTnote] = useState(tag.note), [companyId, setCompanyId] = useState(tag.companyId ?? "");
@@ -177,7 +177,7 @@ export default function Tags() {
   const supplier = data.data?.supplier ?? {};
   const supForm = sup ?? { name: supplier.name ?? "", email: supplier.email ?? "" };
   const saveSup = useMutation({ mutationFn: () => api("/admin/supplier", { method: "PUT", json: supForm }), onSuccess: () => { setSup(null); refresh(qc); } });
-  const free = (users.data ?? []).filter((u) => !u.tag && !u.hasOpenRequest);
+  const free = (users.data ?? []).filter((u) => !u.tag && !u.hasOpenRequest && !u.deactivatedAt);
 
   return (
     <div className="flex flex-col gap-6">

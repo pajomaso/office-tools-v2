@@ -5,7 +5,7 @@ import path from "path";
 // production applies them with `pnpm --filter @workspace/db run migrate`. Local development can keep using `push`.
 export default defineConfig({
   schema: path.join(__dirname, "./src/schema/portal.ts"),
-  out: path.join(__dirname, "./migrations"),
+  out: "./migrations", // relative to lib/db (where pnpm runs the script); an absolute path breaks drizzle-kit
   dialect: "postgresql",
   tablesFilter: ["portal_*"],
   dbCredentials: { url: process.env.DATABASE_URL ?? "postgres://unused" },

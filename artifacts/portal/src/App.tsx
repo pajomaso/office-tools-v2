@@ -37,7 +37,7 @@ function Authed() {
         {me.role === "admin" && <Route path="/app/settings" component={Settings} />}
         <Route path="/app/inbox"><Redirect to="/app/dashboard" /></Route>
         {me.role === "admin" && <Route path="/app/tags" component={Tags} />}
-        {me.role === "admin" && <Route path="/app/users" component={Users} />}
+        {me.role === "admin" && <Route path="/app/users"><Users me={me} /></Route>}
         <Route><Redirect to="/app" /></Route>
       </Switch>
     </AppShell>

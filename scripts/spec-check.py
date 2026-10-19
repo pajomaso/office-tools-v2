@@ -183,6 +183,18 @@ def main():
         Client().post("/auth/password", {"email": "pat@example.test", "password": "wrong wrong wrong"})
     check("5 wrong tries lock the account for a while", Client().post("/auth/password", {"email": "pat@example.test", "password": "a long local test phrase"}).status == 429)
     check("…but the emailed link still works while locked", login("pat@example.test").get("/me").status == 200)
+    # someone who leaves
+    pid = nu.json["id"]
+    pat2, pw2 = login("pat@example.test"), Client()
+    pw2.post("/auth/password", {"email": "pat@example.test", "password": "a long local test phrase"})
+    old_link = Client().post("/auth/request", {"email": "pat@example.test", "origin": BASE}).json["devLink"]
+    off = ad.post(f"/admin/users/{pid}/deactivate")
+    check("deactivate: the person is signed out everywhere at once", off.status == 200 and pat2.get("/me").status == 401 and pw2.get("/me").status == 401)
+    again = Client().post("/auth/request", {"email": "pat@example.test", "origin": BASE})
+    late = Client(); late.call("GET", old_link[len(API):])
+    check("…and can't sign in: no new link, an old link fails, the password fails", again.status == 200 and "devLink" not in (again.json or {}) and late.get("/me").status == 401 and Client().post("/auth/password", {"email": "pat@example.test", "password": "a long local test phrase"}).status == 401)
+    check("…shown as deactivated; an admin can't deactivate themselves; a user can't deactivate anyone", next(u for u in ad.get("/admin/users").json if u["id"] == pid)["deactivatedAt"] and ad.post(f"/admin/users/{ad.get('/me').json['id']}/deactivate").status == 400 and an.post(f"/admin/users/{pid}/reactivate").status == 403)
+    check("reactivate: they can sign in again", ad.post(f"/admin/users/{pid}/reactivate").status == 200 and login("pat@example.test").get("/me").status == 200)
     page = open(os.path.join(ROOT, "artifacts/portal/src/pages/Login.tsx")).read() + open(os.path.join(ROOT, "artifacts/portal/src/pages/Account.tsx")).read()
     check("login/account forms carry the hints password managers (Bitwarden, browser) look for", all(t in page for t in ('autoComplete="username"', 'autoComplete="current-password"', 'autoComplete="new-password"')))
 

@@ -66,6 +66,7 @@ export async function addChange(tx: Tx, o: { tag: Tag; kind: string; toUserId?: 
     if (!o.toUserId || !UUID.test(o.toUserId)) return { error: "Choose who gets the tag.", status: 400 };
     [toUser] = await tx.select().from(portalClientsTable).where(eq(portalClientsTable.id, o.toUserId));
     if (!toUser) return { error: "That person doesn't exist.", status: 404 };
+    if (toUser.deactivatedAt) return { error: `${toUser.name} is deactivated. Reactivate them first.`, status: 409 };
     const busy = await userBusy(tx, toUser.id);
     if (busy) return { error: busy, status: 409 };
   }

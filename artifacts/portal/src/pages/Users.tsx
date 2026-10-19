@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Copy, Plus } from "lucide-react";
 import clsx from "clsx";
-import { api, type AdminTags, type AdminUser, type Company, type MailPreview } from "@/lib/api";
+import { api, type AdminTags, type AdminUser, type Company, type MailPreview, type Me } from "@/lib/api";
 import { Badge, Button, Card, Dialog, PageHeader, Skeleton, fieldInput, fieldCompact, fieldLabel } from "@/components/ui";
+import { askConfirm } from "@/components/Confirm";
+import { Link } from "wouter";
 
 const refresh = (qc: ReturnType<typeof useQueryClient>) => ["admin-users", "admin-companies", "admin-tags", "inbox-count", "inbox-todo"].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
 
@@ -103,7 +105,7 @@ function InviteDialog({ user, onClose }: { user: AdminUser; onClose: () => void 
   );
 }
 
-export default function Users() {
+export default function Users({ me }: { me: Me }) {
   const qc = useQueryClient();
   const users = useQuery({ queryKey: ["admin-users"], queryFn: () => api<AdminUser[]>("/admin/users") });
   const companies = useQuery({ queryKey: ["admin-companies"], queryFn: () => api<Company[]>("/admin/companies") });
@@ -114,24 +116,41 @@ export default function Users() {
   const [co, setCo] = useState("");
   const addCo = useMutation({ mutationFn: () => api("/admin/companies", { method: "POST", json: { name: co } }), onSuccess: () => { setCo(""); refresh(qc); } });
   const list = companies.data ?? [];
+  const [notice, setNotice] = useState<string | null>(null);
+  const active = useMutation({
+    mutationFn: ({ u, on }: { u: AdminUser; on: boolean }) => api<{ tag?: string | null }>(`/admin/users/${u.id}/${on ? "reactivate" : "deactivate"}`, { method: "POST" }).then((r) => ({ u, on, tag: r.tag ?? null })),
+    onSuccess: ({ u, on, tag }) => {
+      setNotice(on ? `${u.name} can sign in again.` : `${u.name} is deactivated and was signed out everywhere.${tag ? ` They still hold tag ${tag}: mark it as returned or lost on the Tags page.` : ""}`);
+      refresh(qc);
+    },
+  });
+  const deactivate = (u: AdminUser) => askConfirm(`Deactivate ${u.name}? They are signed out everywhere and can't sign in any more. Their past bookings and messages stay. You can reactivate them later.`).then((ok) => ok && active.mutate({ u, on: false }));
+  const sorted = [...(users.data ?? [])].sort((a, b) => Number(!!a.deactivatedAt) - Number(!!b.deactivatedAt));
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Users" subtitle="Everyone who uses the office: people, companies and one-off events." actions={<Button onClick={() => setAdding(true)}><Plus className="size-4" />New user</Button>} />
+      {notice && <p role="status" className="rounded-md bg-[var(--surface-2)] px-4 py-2.5 text-sm">{notice}{notice.includes("Tags page") && <> <Link href="/app/tags" className="font-medium text-[var(--brand)] hover:underline">Open Tags →</Link></>}</p>}
+      {active.isError && <p role="alert" className="text-sm text-[var(--danger)]">{active.error.message}</p>}
       {users.isLoading ? <Skeleton className="h-40" /> : (
         <Card>
           <ul className="divide-y divide-[var(--line)]">
-            {users.data?.map((u) => (
-              <li key={u.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+            {sorted.map((u) => (
+              <li key={u.id} className={clsx("flex flex-wrap items-center justify-between gap-3 px-5 py-3", u.deactivatedAt && "bg-[var(--surface-2)]")}>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2"><span className="truncate text-sm font-semibold">{u.name}</span>{u.role === "admin" && <Badge tone="brand">Admin</Badge>}{u.kind === "event" && <Badge>Event</Badge>}</div>
+                  <div className="flex items-center gap-2"><span className="truncate text-sm font-semibold">{u.name}</span>{u.role === "admin" && <Badge tone="brand">Admin</Badge>}{u.kind === "event" && <Badge>Event</Badge>}{u.deactivatedAt && <Badge>Deactivated</Badge>}</div>
                   <div className="truncate text-xs text-[var(--ink-mute)]">{u.email} · {u.company ?? (u.kind === "event" ? "One-off event" : "No company")}{u.hasPassword ? " · has password" : ""}</div>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="mono text-sm text-[var(--ink-soft)]">{u.tag ?? (u.pendingTag ? `${u.pendingTag} (pending)` : "no tag")}</span>
-                  {!u.tag && !u.hasOpenRequest && <Button variant="outline" onClick={() => setOnboarding(u)}>Onboard</Button>}
-                  <Button variant="outline" onClick={() => setInviting(u)}>Welcome email</Button>
-                  <Button variant="outline" onClick={() => setEditing(u)}>Edit</Button>
+                  {u.deactivatedAt ? (
+                    <Button variant="outline" disabled={active.isPending} onClick={() => active.mutate({ u, on: true })}>Reactivate</Button>
+                  ) : <>
+                    {!u.tag && !u.hasOpenRequest && <Button variant="outline" onClick={() => setOnboarding(u)}>Onboard</Button>}
+                    <Button variant="outline" onClick={() => setInviting(u)}>Welcome email</Button>
+                    <Button variant="outline" onClick={() => setEditing(u)}>Edit</Button>
+                    {u.id !== me.id && <Button variant="outline" className="text-[var(--danger)]" disabled={active.isPending} onClick={() => deactivate(u)}>Deactivate</Button>}
+                  </>}
                 </div>
               </li>
             ))}

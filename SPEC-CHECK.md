@@ -7,7 +7,7 @@ Nothing here has been deployed. Everything below ran on a local computer with fa
 
 | What | Result |
 |---|---|
-| `python3 scripts/spec-check.py` (the whole spec, item by item, against the running app) | **111 passed, 0 failed, 1 skipped** (the skipped one is the rate-limit test: it locks that page for an hour, so it's opt-in) |
+| `python3 scripts/spec-check.py` (the whole spec, item by item, against the running app) | **115 passed, 0 failed, 1 skipped** (the skipped one is the rate-limit test: it locks that page for an hour, so it's opt-in) |
 | Same script on a database built **from the schema file alone** (fresh install) | 107 passed, 0 failed; columns and indexes identical to the development database |
 | `pnpm run test` (timezone, metrics, passwords, door codes, tokens, production settings) | 14 tests × 3 machine timezones + 8, all passing |
 | Production build (`api-server` bundle) started with production settings | Starts; refuses to start with missing or unsafe settings; cookie is `HttpOnly; Secure; SameSite=Lax`; sign-in link never in the response or the logs |
@@ -29,6 +29,7 @@ Re-run it any time: start the API and run `python3 scripts/spec-check.py` (see C
 
 ### Users and login
 - ✅ One account type with an admin role; several admins, same permissions.
+- ✅ Someone who leaves can be **deactivated** (Users): signed out everywhere at once, can't sign in again (link, old link or password); history kept; can be reactivated. Added 19 Oct.
 - ✅ Name, email, tag, company; companies; "one-off event" users (no company).
 - ✅ Magic link **and** password. Wrong tries are limited; a locked account can still use the link.
 - ⚠️ The password form has the standard fields Bitwarden and browsers look for, but it was **not tested with a real Bitwarden**.

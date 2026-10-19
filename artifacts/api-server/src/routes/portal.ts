@@ -38,7 +38,8 @@ async function requireClient(req: Request, res: Response, next: NextFunction) {
         .from(portalSessionsTable)
         .innerJoin(portalClientsTable, eq(portalClientsTable.id, portalSessionsTable.clientId))
         .where(and(eq(portalSessionsTable.id, hashToken(sid)), gt(portalSessionsTable.expiresAt, new Date())));
-      if (row) {
+      if (row && row.client.deactivatedAt) { await db.delete(portalSessionsTable).where(eq(portalSessionsTable.id, hashToken(sid))); }
+      else if (row) {
         (req as Authed).client = row.client;
         // "Fresh" = signed in within the last 15 minutes (e.g. via the emailed link), which lets someone who forgot their password set a new one.
         (req as Authed).justSignedIn = +row.expiresAt - SESSION_DAYS * 86_400_000 > Date.now() - TOKEN_MINUTES * 60_000;
@@ -70,7 +71,7 @@ router.post("/portal/auth/request", asyncRoute(async (req, res) => {
   if (linkPerIp.hit(req.ip ?? "unknown") || linkPerEmail.hit(email)) { res.status(429).json({ error: SLOW_DOWN }); return; }
   const [client] = await db.select().from(portalClientsTable).where(eq(portalClientsTable.email, email));
   // Same response for known and unknown emails, so addresses can't be enumerated.
-  if (!client) { res.json({ ok: true }); return; }
+  if (!client || client.deactivatedAt) { res.json({ ok: true }); return; } // deactivated: same answer, no link
   const t = token();
   await db.insert(portalLoginTokensTable).values({ token: hashToken(t), clientId: client.id, expiresAt: new Date(Date.now() + TOKEN_MINUTES * 60_000) });
   const link = `${publicBase(req.body?.origin)}/api/portal/auth/verify?token=${t}`;
@@ -91,6 +92,8 @@ router.get("/portal/auth/verify", asyncRoute(async (req, res) => {
   const t = String(req.query.token ?? "");
   const [row] = await db.select().from(portalLoginTokensTable).where(and(eq(portalLoginTokensTable.token, hashToken(t)), gt(portalLoginTokensTable.expiresAt, new Date())));
   if (!row || row.usedAt) { res.redirect("/login?error=expired"); return; }
+  const [owner] = await db.select({ off: portalClientsTable.deactivatedAt }).from(portalClientsTable).where(eq(portalClientsTable.id, row.clientId));
+  if (!owner || owner.off) { res.redirect("/login?error=expired"); return; } // a link sent before the person was deactivated
   await db.update(portalLoginTokensTable).set({ usedAt: new Date() }).where(eq(portalLoginTokensTable.token, hashToken(t)));
   await startSession(res, row.clientId);
   // An invite lands on the account page so the new person can choose a password (optional).
@@ -105,6 +108,7 @@ router.post("/portal/auth/password", asyncRoute(async (req, res) => {
   const email = String(req.body?.email ?? "").trim().toLowerCase();
   const password = String(req.body?.password ?? "").slice(0, PASSWORD_MAX);
   const [c] = email ? await db.select().from(portalClientsTable).where(eq(portalClientsTable.email, email)) : [];
+  if (c?.deactivatedAt) { res.status(401).json({ error: "Wrong email or password." }); return; }
   if (c?.lockedUntil && c.lockedUntil > new Date()) {
     res.status(429).json({ error: "Too many wrong attempts. Try again in a few minutes, or use a sign-in link." }); return;
   }
